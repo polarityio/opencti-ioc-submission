@@ -1,0 +1,26 @@
+{
+  "name": "opencti-ioc-submission",
+  "version": "3.0.0",
+  "description": "Polarity integration for Submitting IOCs to OpenCTI",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:verbose": "jest --verbose",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest test/integration.test.js",
+    "test:server": "jest test/server/",
+    "test:queries": "jest test/server/queries/",
+    "test:onMessage": "jest test/server/onMessage/",
+    "runQueries": "node ./.cursor/scripts/runIocSubmissionQueries.js"
+  },
+  "dependencies": {
+    "async": "^3.2.6",
+    "lodash": "^4.17.21",
+    "node-cache": "^5.1.2",
+    "polarity-integration-utils": "^0.1.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "jest": "^29.7.0"
+  }
+}
