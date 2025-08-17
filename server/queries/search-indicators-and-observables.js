@@ -220,68 +220,6 @@ function createUnifiedDataStructure(entity, indicators, observables, options) {
   return unifiedItems;
 }
 
-/**
- * Create unified results with computed properties for single-list interface
- * Implements CTO design meeting specifications for icon-based differentiation
- * @param {Array} indicators - OpenCTI indicators from GraphQL
- * @param {Array} observables - OpenCTI observables from GraphQL
- * @param {Object} options - Request options
- */
-// const createUnifiedResults = (indicators, observables, options) => {
-//   const transformedIndicators = indicators?.map((indicator) => ({
-//     id: indicator.id,
-//     name: indicator.name || indicator.pattern,
-//     displayName: indicator.name || entity.value,
-//     type: 'indicator',
-//     displayType: 'Indicator',
-//     icon: 'fingerprint',
-//     pattern: indicator.pattern,
-//     description: indicator.description || '',
-//     webLink: `${options.url}/dashboard/observations/indicators/${indicator.id}`,
-//     confidence: indicator.confidence || 50,
-//     score: indicator.x_opencti_score || 50,
-//     labels: (indicator.objectLabel || []).map((label) => label.value),
-//     createdAt: indicator.created_at,
-//     updatedAt: indicator.updated_at,
-//     createdBy: indicator.createdBy?.name || 'Unknown',
-//     // Computed properties for unified interface
-//     foundInOpenCTI: true,
-//     isIndicator: true,
-//     isObservable: false,
-//     __submitAsIndicator: false,
-//     __submitAsObservable: false
-//   }));
-//
-//   // Transform observables with binoculars icon (🔍)
-//   const transformedObservables = observables?.map((observable) => ({
-//     id: observable.id,
-//     name: observable.observable_value || entity.value,
-//     displayName: observable.observable_value || entity.value,
-//     observableValue: observable.observable_value,
-//     type: 'observable',
-//     displayType: 'Observable',
-//     icon: 'binoculars',
-//     description: observable.x_opencti_description || '',
-//     webLink: `${options.url}/dashboard/observations/observables/${observable.id}`,
-//     score: observable.x_opencti_score || 50,
-//     labels: (observable.objectLabel || []).map((label) => label.value),
-//     createdAt: observable.created_at,
-//     updatedAt: observable.updated_at,
-//     createdBy: observable.createdBy?.name || 'Unknown',
-//     // Computed properties for unified interface
-//     foundInOpenCTI: true,
-//     isIndicator: false,
-//     isObservable: true,
-//     __submitAsIndicator: false,
-//     __submitAsObservable: false
-//   }));
-//
-//   return {
-//     indicators: transformedIndicators,
-//     observables: transformedObservables
-//   };
-// };
-
 module.exports = {
   searchIndicatorsAndObservables,
   createUnifiedDataStructure
