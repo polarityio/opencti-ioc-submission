@@ -368,14 +368,12 @@ polarity.export = PolarityComponent.extend({
     removeAllToBeSubmitted: function () {
       this.get('unifiedResults').forEach((result, index) => {
         this.set(`unifiedResults.${index}.__toBeSubmitted`, false);
-        this.set(`unifiedResults.${index}.__deleteTooltipIsVisible`, false);
       });
     },
     addAllNotInOpenCTIBeSubmitted: function () {
       this.get('unifiedResults').forEach((result, index) => {
         if (!result.foundInOpenCTI && !result.__isOnExclusionList) {
           this.set(`unifiedResults.${index}.__toBeSubmitted`, true);
-          this.set(`unifiedResults.${index}.__deleteTooltipIsVisible`, false);
         }
       });
     },
@@ -387,7 +385,6 @@ polarity.export = PolarityComponent.extend({
           result.canAddToSubmit
         ) {
           this.set(`unifiedResults.${index}.__toBeSubmitted`, true);
-          this.set(`unifiedResults.${index}.__deleteTooltipIsVisible`, false);
         }
       });
     },

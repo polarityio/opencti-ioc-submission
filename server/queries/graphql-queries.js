@@ -23,6 +23,11 @@ const buildSearchQuery = () => {
           standard_id
           entity_type
           pattern
+          pattern_type
+          creators {
+           name
+          }
+          confidence
           name
           description
           indicator_types
@@ -63,6 +68,9 @@ const buildSearchQuery = () => {
           updated_at
           createdBy {
             name
+          }
+          creators {
+           name
           }
           objectLabel {
             value
@@ -276,6 +284,8 @@ const CREATE_INDICATOR_MUTATION = `
       standard_id
       entity_type
       pattern
+      pattern_type
+      confidence
       name
       description
       indicator_types
@@ -286,6 +296,9 @@ const CREATE_INDICATOR_MUTATION = `
       created_at
       updated_at
       createdBy {
+        name
+      }
+      creators {
         name
       }
       objectLabel {
@@ -337,6 +350,7 @@ const CREATE_OBSERVABLE_MUTATION = `
       standard_id
       entity_type
       observable_value
+      confidence
       x_opencti_score
       x_opencti_description
       created_at

@@ -40,11 +40,11 @@
     >
       <div class="title">
         <div class="content" id="deletion-modal-title">
-          Delete Entity from OpenCTI
+          Delete {{capitalize resultToDelete.type}}
         </div>
       </div>
       <div class="content" role="form" aria-describedby="deletion-warning">
-        <div class="mb-3" id="deletion-warning">
+        <div class="mb-2" id="deletion-warning">
           {{fa-icon
             icon="exclamation-triangle"
             fixedWidth=true
@@ -57,12 +57,11 @@
           </b>
           from OpenCTI.
         </div>
-
-        <div class="alert alert-warning">
+        <div class="alert alert-warning p-1">
           <small>
             {{fa-icon icon="info-circle" fixedWidth=true class="mr-1" aria-hidden="true"}}
             Deleting an {{capitalize resultToDelete.type
-            }} cannot be undone and will permanently remove all related {{capitalize
+            }} cannot be undone and will permanently remove {{capitalize
               resultToDelete.type
             }} data from OpenCTI.
           </small>
@@ -103,49 +102,53 @@
       <div class="content">
         <div class="form-group">
           <label class="p-key">
-            Entity
+            {{resultToEdit.openCtiType}}
           </label>
-          <div class="p-value">
-            {{resultToEdit.entityValue}} (
-            {{#if resultToEdit.entityType}}
-              {{capitalize resultToEdit.entityType}}
-            {{else}}
-              Unknown
-            {{/if}}
-            )
+          <div class="p-value-break-all">
+            {{resultToEdit.entityValue}}
           </div>
         </div>
 
-        <div class="form-group mt-3">
-          <label class="p-key">
+        {{! Edit Score Input }}
+        <div class="input-container">
+          <label class="small ifta-label">
             Score
           </label>
           {{input
-            type="number"
-            value=editFormData.score
-            min="0"
-            max="100"
-            class="form-control"
-            placeholder="Default: 50"
+              type="number"
+              min=0
+              max=100
+              class=(concat "mb-0 ifta-field" (if uiElement.error " error"))
+              value=editFormData.score
+              placeholder=50
+              disabled=interactionDisabled
+              required=false
           }}
-          <small class="form-text text-muted">
-            Score from 0-100 (default: 50)
-          </small>
+        </div>
+        <div class="form-element-instruction">
+          Score from 0-100 (default: 50)
         </div>
 
-        <div class="form-group mt-3">
-          <label class="p-key">
+        {{! Edit Description Input }}
+        <div
+          class="mb-0 input-container text-area-container {{if interactionDisabled "disabled"}} {{
+          if uiElement.error "error"
+          }}"
+        >
+          <label class="small">
             Description
           </label>
           {{textarea
-            value=editFormData.description
-            class="form-control"
-            placeholder="Optional description..."
-            rows="3"
+              class="ifta-field"
+              rows=5
+              placeholder="Enter a description"
+              value=editFormData.description
+              disabled=interactionDisabled
+              required=false
           }}
-          <small class="form-text text-muted">
-            Optional description for this item
-          </small>
+        </div>
+        <div class="form-element-instruction">
+          Optional description for this item
         </div>
       </div>
       <div class="footer">
@@ -287,62 +290,6 @@
                   {{/if}}
                 </div>
                 <div class="d-flex align-items-start justify-content-end flex-shrink-0">
-                  {{#if hasAnyDeletionPermissions}}
-                    {{#if (eq result.type "indicator")}}
-                      <button
-                        class="header-button delete mr-1"
-                        disabled={{
-                          or interactionDisabled (not hasIndicatorDeletePermission)
-                        }}
-                        {{action
-                          (pipe-action
-                            (action "initiateItemDeletion" result)
-                            (action (set result "__deleteTooltipIsVisible" false))
-                          )
-                          bubbles=false
-                        }}
-                      >
-                        {{fa-icon icon="trash" fixedWidth=true}}
-                        {{#if (not hasIndicatorDeletePermission)}}
-                          {{bs-tooltip
-                            title="Admin set permissions so you cannot delete Indicators"
-                          }}
-                        {{else if interactionDisabled}}
-                        {{else}}
-                          {{bs-tooltip
-                            title="Delete indicator from your default organization"
-                          }}
-                        {{/if}}
-                      </button>
-                    {{/if}}
-                    {{#if (eq result.type "observable")}}
-                      <button
-                        class="header-button delete mr-1"
-                        disabled={{
-                          or interactionDisabled (not hasObservableDeletePermission)
-                        }}
-                        {{action
-                          (pipe-action
-                            (action "initiateItemDeletion" result)
-                            (action (set result "__deleteTooltipIsVisible" false))
-                          )
-                          bubbles=false
-                        }}
-                      >
-                        {{fa-icon icon="trash" fixedWidth=true}}
-                        {{#if (not hasObservableDeletePermission)}}
-                          {{bs-tooltip
-                            title="Admin set permissions so you cannot delete Observables"
-                          }}
-                        {{else if interactionDisabled}}
-                        {{else}}
-                          {{bs-tooltip
-                            title="Delete indicator from your default organization"
-                          }}
-                        {{/if}}
-                      </button>
-                    {{/if}}
-                  {{/if}}
                   {{#if result.__hasSubmissionError}}
                     <div>
                       {{fa-icon
@@ -420,14 +367,35 @@
                     <h2 class="p-title my-0">
                       {{humanize result.type}}
                     </h2>
+                    {{!-- Edit Button --}}
                     <button
                       class="header-button edit ml-1"
                       disabled={{not result.__viewIndicatorDetails}}
                       {{action "initiateItemEdit" result}}
                     >
                       {{fa-icon icon="pencil" fixedWidth=true}}
-                      {{bs-tooltip title=(concat "Edit " result.type)}}
+                      {{bs-tooltip triggerEvents="hover" title=(concat "Edit " result.type)}}
                     </button>
+                    {{!-- Delete Button --}}
+                    {{#if (and (eq result.type "indicator") hasIndicatorDeletePermission)}}
+                      <button
+                        class="header-button delete ml-1"
+                        disabled={{interactionDisabled}}
+                        {{action "initiateItemDeletion" result}}
+                      >
+                        {{fa-icon icon="trash" fixedWidth=true}}
+                        {{bs-tooltip triggerEvents="hover" title="Delete Indicator"}}
+                      </button>
+                    {{else if (and (eq result.type "observable") hasObservableDeletePermission)}}
+                      <button
+                        class="header-button delete ml-1"
+                        disabled={{interactionDisabled}}
+                        {{action "initiateItemDeletion" result}}
+                      >
+                        {{fa-icon icon="trash" fixedWidth=true}}
+                        {{bs-tooltip triggerEvents="hover" title="Delete Observable"}}
+                      </button>
+                    {{/if}}
                   </div>
                   <div class="flex-shrink-0">
                     <a href={{result.webLink}}>
@@ -442,7 +410,11 @@
                 <div class="search-result-indicator-container">
                   <div class="d-flex align-items-start justify-content-between">
                     <div class="mr-1">
-                      {{result.openCtiType}}
+                      {{#if (eq result.type "indicator")}}
+                        {{result.patternType}}
+                      {{else}}
+                        {{result.openCtiType}}  
+                      {{/if}}                      
                     </div>
                     <div class="flex-shrink-0 score-box {{if (gt result.score 75) "red" (if (gt result.score 50) "orange" (if (gt result.score 20) "blue" "green"))}}">
                       {{#if result.score}}
@@ -466,23 +438,29 @@
                         Pattern:
                       </span>
                       {{#if (lt result.pattern.length 250)}}
-                        <span class="p-value">
+                        <span class="p-value-break-all">
                           {{result.pattern}}
                         </span>
                       {{else}}
-                        <div class="p-value p-block">
+                        <div class="p-value-break-all p-block">
                           {{result.pattern}}
                         </div>
                       {{/if}}
+                    </div>
+                  {{/if}}
+                  {{#if (eq result.type "indicator")}}
+                    <div>
+                      <span class="p-key">Confidence:</span>
+                      <span class="p-value">{{result.confidence}}</span>
                     </div>
                   {{/if}}
                   <div>
                     <span class="p-key">
                       Author:
                     </span>
-                    <span>
-                      {{#if result.author}}
-                        {{result.author}}
+                    <span class="p-value">
+                      {{#if result.createdBy}}
+                        {{result.createdBy}}
                       {{else}}
                         --
                       {{/if}}
@@ -492,9 +470,9 @@
                     <span class="p-key">
                       Creators:
                     </span>
-                    <span class="p-value">
-                      {{#if result.createdBy}}
-                        {{result.createdBy}}
+                    <span>
+                      {{#if result.creators}}
+                        {{join result.creators ", "}}
                       {{else}}
                         --
                       {{/if}}
@@ -795,21 +773,6 @@
                     {{bs-tooltip title="Submit entity as a new Indicator"}}
                   {{/if}}
                 </label>
-                {{! show icon if this indicator will be updated rather than created }}
-                {{#each result.indicators as |indicator|}}
-                  {{#if indicator.willBeUpdated}}
-                    <div class="mr-1">
-                      {{fa-icon icon="pencil" fixedWidth=true class="icon-small p-grey"}}
-                      {{bs-tooltip
-                        title=(concat
-                          "This indicator already exists in "
-                          owner.name
-                          " and will be updated"
-                        )
-                      }}
-                    </div>
-                  {{/if}}
-                {{/each}}
                 <button
                   class="header-button minus p-orange"
                   disabled={{interactionDisabled}}
@@ -821,7 +784,7 @@
                   }}
                 >
                   {{fa-icon icon="minus" fixedWidth=true}}
-                  {{bs-tooltip title="Remove entity from submission list"}}
+                  {{bs-tooltip triggerEvents="hover" title="Remove entity from submission list"}}
                 </button>
               </div>
             </div>
@@ -844,7 +807,7 @@
       </div>
     </div>
 
-    {{! Source Input }}
+    {{! Score Input }}
     <div class="input-container">
       <label class="small ifta-label">
         Score
@@ -1001,10 +964,7 @@
       {{/if}}
     </div>
 
-    <div
-      class="d-flex justify-content-between align-items-center mt-2"
-      style="margin-bottom: 100px;"
-    >
+    <div class="d-flex justify-content-between align-items-center mt-2">
       <div>
         <span class="p-footnote">
           {{numberOfIndicatorsToBeSubmitted}} 

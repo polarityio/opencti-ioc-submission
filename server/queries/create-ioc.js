@@ -144,7 +144,7 @@ const createVariablesByType = (
         description,
         score: parseInt(score),
         labels,
-        createdBy: options.authorId
+        createdBy: null
       }
     : false;
 
