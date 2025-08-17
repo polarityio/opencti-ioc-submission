@@ -148,7 +148,7 @@
           }}
         </div>
         <div class="form-element-instruction">
-          Optional description for this item
+          Optional description for this {{resultToEdit.type}}
         </div>
       </div>
       <div class="footer">
@@ -317,14 +317,13 @@
                       <button
                         class="header-button add p-green"
                         disabled={{or interactionDisabled (not result.canAddToSubmit)}}
-                        {{action (set result "__toBeSubmitted" true) bubbles=false}}
+                        {{action "addToSubmissionList" result index bubbles=false}}                              
                       >
                         {{fa-icon icon="plus" fixedWidth=true}}
-  
                         {{bs-tooltip
                           title=(if
                             result.canAddToSubmit
-                            "Add IOC to submission list"
+                            "Add to submission list"
                             "Already exists as both Indicator and Observable"
                           )
                         }}
@@ -531,7 +530,7 @@
       {{/if}}
     </div>
     <div class="search-results">
-      {{#each unifiedResults as |result|}}
+      {{#each unifiedResults as |result index|}}
         {{#if (and (not result.foundInOpenCTI) (not result.__toBeSubmitted))}}
           <div class="search-result-container">
             <div
@@ -610,10 +609,10 @@
                           <button
                             class="header-button add p-green"
                             disabled={{interactionDisabled}}
-                            {{action (set result "__toBeSubmitted" true) bubbles=false}}
+                            {{action "addToSubmissionList" result index bubbles=false}}
                           >
                             {{fa-icon icon="plus" fixedWidth=true}}
-                            {{bs-tooltip title="Add entity with selected type"}}
+                            {{bs-tooltip title="Add to submission list"}}
                           </button>
                         {{else}}
                           <div class="p-footnote text-muted">
@@ -776,12 +775,7 @@
                 <button
                   class="header-button minus p-orange"
                   disabled={{interactionDisabled}}
-                  {{action
-                    (pipe-action
-                      (set result "__toBeSubmitted" false)
-                      (set result "__deleteTooltipIsVisible" false)
-                    )
-                  }}
+                  {{action "removeFromSubmissionList" result index}}
                 >
                   {{fa-icon icon="minus" fixedWidth=true}}
                   {{bs-tooltip triggerEvents="hover" title="Remove entity from submission list"}}

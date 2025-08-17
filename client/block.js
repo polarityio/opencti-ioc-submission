@@ -368,7 +368,22 @@ polarity.export = PolarityComponent.extend({
     removeAllToBeSubmitted: function () {
       this.get('unifiedResults').forEach((result, index) => {
         this.set(`unifiedResults.${index}.__toBeSubmitted`, false);
+        this.set(`unifiedResults.${index}.__submitAsObservable`, false);
+        this.set(`unifiedResults.${index}.__submitAsIndicator`, false);
       });
+    },
+    addToSubmissionList: function (result, index) {
+      this.set(`unifiedResults.${index}.__toBeSubmitted`, true);
+      if (result.isIndicator) {
+        this.set(`unifiedResults.${index}.__submitAsObservable`, true);
+      } else if (result.isObservable) {
+        this.set(`unifiedResults.${index}.__submitAsIndicator`, true);
+      }
+    },
+    removeFromSubmissionList: function (result, index) {
+      this.set(`unifiedResults.${index}.__toBeSubmitted`, false);
+      this.set(`unifiedResults.${index}.__submitAsObservable`, false);
+      this.set(`unifiedResults.${index}.__submitAsIndicator`, false);
     },
     addAllNotInOpenCTIBeSubmitted: function () {
       this.get('unifiedResults').forEach((result, index) => {
@@ -491,7 +506,8 @@ polarity.export = PolarityComponent.extend({
         this.set(
           'unifiedResults',
           this.get('unifiedResults').filter(
-            (result) => !(result.foundInOpenCTI === false && result.__toBeSubmitted === true)
+            (result) =>
+              !(result.foundInOpenCTI === false && result.__toBeSubmitted === true)
           )
         );
 
@@ -605,7 +621,6 @@ polarity.export = PolarityComponent.extend({
         this.set('resultToDelete', {});
       });
   },
-
   editItemRequest: function () {
     const resultToEdit = this.get('resultToEdit');
     const editFormData = this.get('editFormData');
@@ -665,7 +680,6 @@ polarity.export = PolarityComponent.extend({
         this.set('resultToEdit', {});
       });
   },
-
   searchTagsRequest: function (term, resolve, reject) {
     this.set('createMessage', '');
     this.set('createErrorMessage', '');
