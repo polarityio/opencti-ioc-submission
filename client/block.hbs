@@ -102,7 +102,7 @@
       <div class="content">
         <div class="form-group">
           <label class="p-key">
-            {{resultToEdit.openCtiType}}
+            {{resultToEdit.openCtiTypeHuman}}
           </label>
           <div class="p-value-break-all">
             {{resultToEdit.entityValue}}
@@ -413,7 +413,7 @@
                       {{#if (eq result.type "indicator")}}
                         {{result.patternType}}
                       {{else}}
-                        {{result.openCtiType}}  
+                        {{result.openCtiTypeHuman}}  
                       {{/if}}                      
                     </div>
                     <div class="flex-shrink-0 score-box {{if (gt result.score 75) "red" (if (gt result.score 50) "orange" (if (gt result.score 20) "blue" "green"))}}">
@@ -554,8 +554,8 @@
               <div class="d-flex align-items-start justify-content-end">
                 <div class="mr-1">
                   <span class="p-footnote">
-                    {{#if result.entityType}}
-                      {{result.entityType}}
+                    {{#if result.openCtiTypeHuman}}
+                      {{result.openCtiTypeHuman}}
                     {{else}}
                       Unknown
                     {{/if}}
@@ -613,7 +613,7 @@
                             {{action (set result "__toBeSubmitted" true) bubbles=false}}
                           >
                             {{fa-icon icon="plus" fixedWidth=true}}
-                            {{bs-tooltip title="Add entity with selected type(s)"}}
+                            {{bs-tooltip title="Add entity with selected type"}}
                           </button>
                         {{else}}
                           <div class="p-footnote text-muted">
@@ -731,7 +731,7 @@
                 {{result.entityValue}}
                 </div>
                 <div class="p-footnote">
-                  {{result.entityType}}
+                  {{result.openCtiTypeHuman}}
                 </div>
               </div>
               <div class="d-flex align-items-start justify-content-end">
@@ -753,7 +753,7 @@
                   {{#if result.isObservable}}
                     {{bs-tooltip title="Entity is already an Observable"}}
                   {{else}}
-                    {{bs-tooltip title="Submit entity as a new Observable"}}
+                    {{bs-tooltip title=(concat "Submit " result.openCtiTypeHuman  " as new Observable")}}
                   {{/if}}
                 </label>
                 <label
@@ -770,7 +770,7 @@
                   {{#if result.isIndicator}}
                     {{bs-tooltip title="Entity is already an Indicator"}}
                   {{else}}
-                    {{bs-tooltip title="Submit entity as a new Indicator"}}
+                    {{bs-tooltip title=(concat "Submit " result.openCtiTypeHuman  " as new Indicator")}}
                   {{/if}}
                 </label>
                 <button

@@ -13,6 +13,18 @@ const ENTITY_TYPE_BY_OBSERVABLE_TYPE = {
   MAC: 'Mac-Addr'
 };
 
+const ENTITY_TYPE_TO_OPENCTI_HUMAN_READABLE_TYPE = {
+  IPv4: 'IPv4 address',
+  IPv6: 'IPv6 address',
+  domain: 'Domain name',
+  email: 'Email address',
+  MD5: 'File',
+  SHA1: 'File',
+  SHA256: 'File',
+  url: 'URL',
+  MAC: 'MAC address'
+}
+
 /** Observable Search Keys
  *  Artifact
  *  AutonomousSystem
@@ -90,5 +102,6 @@ module.exports = {
   ENTITY_TYPE_BY_OBSERVABLE_SUBMISSION_KEY,
   STIX_PATTERNS,
   DEFAULT_CONFIG,
-  SUPPORTED_ENTITY_TYPES
+  SUPPORTED_ENTITY_TYPES,
+  ENTITY_TYPE_TO_OPENCTI_HUMAN_READABLE_TYPE
 }; 

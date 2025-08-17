@@ -1,6 +1,9 @@
 const _ = require('lodash');
 
-const { IGNORED_IPS } = require('./constants');
+const {
+  IGNORED_IPS,
+  ENTITY_TYPE_TO_OPENCTI_HUMAN_READABLE_TYPE
+} = require('./constants');
 const { hasAnyDeletionPermissions } = require('../userOptions');
 const { logging } = require('polarity-integration-utils');
 
@@ -35,12 +38,17 @@ const splitOutIgnoredIps = (_entitiesPartition) => {
  */
 const createUnifiedItemList = (indicators, observables, entity, options = {}) => {
   const Logger = logging.getLogger();
-  
-  Logger.trace({indicators, observables, entity, options}, 'createUnifiedItemList');
-  
+
+  Logger.trace({ indicators, observables, entity, options }, 'createUnifiedItemList');
+
+  const specificEntityType = getSpecificPolarityEntityType(entity);
+  const openCtiTypeHuman =
+    ENTITY_TYPE_TO_OPENCTI_HUMAN_READABLE_TYPE[specificEntityType] || 'unknown type';
+
   const transformedIndicators = indicators.map((indicator) => ({
     id: indicator.id,
     openCtiType: indicator.entity_type,
+    openCtiTypeHuman,
     pattern: indicator.pattern,
     patternType: indicator.pattern_type,
     confidence: indicator.confidence,
@@ -58,7 +66,9 @@ const createUnifiedItemList = (indicators, observables, entity, options = {}) =>
     updatedAt: indicator.updated_at,
     // createdBy is displayed as "Author" in UI
     createdBy: indicator.createdBy?.name || '--',
-    creators: Array.isArray(indicator.creators) ? indicator.creators.map(creator => creator.name) : '--',
+    creators: Array.isArray(indicator.creators)
+      ? indicator.creators.map((creator) => creator.name)
+      : '--',
     foundInOpenCTI: true,
     isIndicator: true,
     isObservable: false,
@@ -77,6 +87,7 @@ const createUnifiedItemList = (indicators, observables, entity, options = {}) =>
   const transformedObservables = observables.map((observable) => ({
     id: observable.id,
     openCtiType: observable.entity_type,
+    openCtiTypeHuman,
     name: observable.observable_value || entity.value,
     displayName: observable.observable_value || entity.value,
     observableValue: observable.observable_value,
@@ -88,7 +99,9 @@ const createUnifiedItemList = (indicators, observables, entity, options = {}) =>
     updatedAt: observable.updated_at,
     // createdBy is displayed as "Author" in UI
     createdBy: observable.createdBy?.name || '--',
-    creators: Array.isArray(observable.creators) ? observable.creators.map(creator => creator.name) : '--',
+    creators: Array.isArray(observable.creators)
+      ? observable.creators.map((creator) => creator.name)
+      : '--',
     foundInOpenCTI: true,
     type: 'observable',
     icon: 'binoculars',
@@ -97,7 +110,7 @@ const createUnifiedItemList = (indicators, observables, entity, options = {}) =>
     isIndicator: false,
     isObservable: true,
     entityValue: entity.value,
-    entityType: getSpecificPolarityEntityType(entity),
+    entityType: specificEntityType,
     canEdit: true,
     canDelete: hasAnyDeletionPermissions(options),
     __submitAsIndicator: observable.__submitAsIndicator || false,
@@ -118,29 +131,29 @@ const createUnifiedItemList = (indicators, observables, entity, options = {}) =>
 /**
  * Given an entity, returns the specific entity type of that entity
  * For example, if an entity is a `hash`, this method will return the specific
- * hash.  
- * 
+ * hash.
+ *
  * Note that if an entity is also annotated it will include the `string` type
- * but the more specific type will take precedent.  As a result, the only 
+ * but the more specific type will take precedent.  As a result, the only
  * special check needed is for hashes.
- * 
+ *
  * @param entity
  */
 const getSpecificPolarityEntityType = (entity) => {
-  if(entity.types.includes('MD5')) {
+  if (entity.types.includes('MD5')) {
     return 'MD5';
   }
-  
-  if(entity.types.includes('SHA1')){
+
+  if (entity.types.includes('SHA1')) {
     return 'SHA1';
   }
-  
-  if(entity.types.includes('SHA256')){
+
+  if (entity.types.includes('SHA256')) {
     return 'SHA256';
   }
-  
+
   return entity.type;
-}
+};
 
 /**
  * Map entity type to OpenCTI observable type

@@ -16,6 +16,7 @@ const {
   createUnifiedItemList,
   getSpecificPolarityEntityType
 } = require('../core/dataTransformations');
+const { ENTITY_TYPE_TO_OPENCTI_HUMAN_READABLE_TYPE } = require('../core/constants');
 
 const searchIndicatorsAndObservables = async (entities, options) => {
   const Logger = logging.getLogger();
@@ -201,16 +202,20 @@ function createUnifiedDataStructure(entity, indicators, observables, options) {
 
   let unifiedItems = createUnifiedItemList(indicators, observables, entity, options);
 
-  if (unifiedItems.length === 0)
+  if (unifiedItems.length === 0) {
+    const specificEntityType = getSpecificPolarityEntityType(entity);
     unifiedItems = [
       {
         foundInOpenCTI: false,
         isIndicator: false,
         isObservable: false,
         entityValue: entity.value,
-        entityType: getSpecificPolarityEntityType(entity)
+        entityType: specificEntityType,
+        openCtiTypeHuman:
+          ENTITY_TYPE_TO_OPENCTI_HUMAN_READABLE_TYPE[specificEntityType] || 'unknown type'
       }
     ];
+  }
 
   Logger.trace(
     { entity: entity.value, unified: unifiedItems.length },
@@ -223,5 +228,4 @@ function createUnifiedDataStructure(entity, indicators, observables, options) {
 module.exports = {
   searchIndicatorsAndObservables,
   createUnifiedDataStructure
-  //createUnifiedResults
 };
