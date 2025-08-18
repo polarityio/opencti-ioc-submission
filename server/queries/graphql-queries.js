@@ -31,7 +31,6 @@ const buildSearchQuery = () => {
           name
           description
           indicator_types
-          confidence
           x_opencti_score
           valid_from
           valid_until
@@ -285,7 +284,6 @@ const CREATE_INDICATOR_MUTATION = `
       entity_type
       pattern
       pattern_type
-      confidence
       name
       description
       indicator_types
@@ -350,7 +348,6 @@ const CREATE_OBSERVABLE_MUTATION = `
       standard_id
       entity_type
       observable_value
-      confidence
       x_opencti_score
       x_opencti_description
       created_at
