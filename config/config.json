@@ -1,7 +1,7 @@
 {
   "name": "OpenCTI IOC Submission",
   "acronym": "OCTI+",
-  "description": "",
+  "description": "Search and submit OpenCTI Observables and Indicators",
   "entityTypes": [
     "domain",
     "url",
