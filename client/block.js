@@ -23,17 +23,8 @@ polarity.export = PolarityComponent.extend({
     this._super(...arguments);
 
     try {
+      
       this.set('state', { errorMessage: '', errorTitle: '' });
-
-      // Debug logging for troubleshooting
-      console.log('OpenCTI IOC Submission component initialized:', {
-        notifications:
-          !!this.get('editNotifications.length') ||
-          !!this.get('submissionNotifications.length'),
-        unifiedResults: !!this.get('unifiedResults'),
-        hasDetails: !!this.get('details')
-      });
-
       this.refreshCanAddToSubmit();
     } catch (error) {
       console.error('Component initialization error:', error);
@@ -317,7 +308,6 @@ polarity.export = PolarityComponent.extend({
     });
   },
   refreshCanAddToSubmit: function () {
-    console.info('!!! refreshCanAddToSubmit', this.get('unifiedResults'));
     this.get('unifiedResults').forEach((result, index) => {
       const isUnique = !this.get('unifiedResults').some(
         (otherResult, otherIndex) =>
@@ -612,8 +602,10 @@ polarity.export = PolarityComponent.extend({
       })
       .catch((err) => {
         console.error('Error deleting entity', err);
-        const userFriendlyError = this.parseOpenCTIError(err);
-        this.flashMessage(`Failed to delete entity: ${userFriendlyError}`, 'danger');
+        const userFriendlyError = this.parseOpenCTIError(error);
+        this.set('state.errorTitle', 'Deletion Failed');
+        this.set('state.errorMessage', userFriendlyError);
+        this.flashMessage(`Failed to delete ${resultToDelete.type}: ${userFriendlyError}`, 'danger');
       })
       .finally(() => {
         this.set('isDeleting', false);
@@ -652,10 +644,7 @@ polarity.export = PolarityComponent.extend({
 
     this.sendIntegrationMessage(payload)
       .then(({ editedIocId }) => {
-        console.info('Edit result', { editedIocId, resultToEdit });
-
         const indexToUpdate = this.get('unifiedResults').findIndex(
-          // TODO: fix path we are using to get the editIocId then add back for better true error handing and flashMessage interactivity notifying user of what happened
           (existingResult) => existingResult.id === resultToEdit.id
         );
 
@@ -672,7 +661,9 @@ polarity.export = PolarityComponent.extend({
       .catch((err) => {
         console.error('Error editing item', err);
         const userFriendlyError = this.parseOpenCTIError(err);
-        this.flashMessage(`Failed to edit item: ${userFriendlyError}`, 'danger');
+        this.set('state.errorTitle', 'Edit Failed');
+        this.set('state.errorMessage', userFriendlyError);
+        this.flashMessage(`Failed to edit ${resultToEdit.type}: ${userFriendlyError}`, 'danger');
       })
       .finally(() => {
         this.set('isEditing', false);
@@ -702,8 +693,11 @@ polarity.export = PolarityComponent.extend({
         this.set('previousTagSearch', term);
       })
       .catch((err) => {
+        console.error('Error searching labels', err);
         const userFriendlyError = this.parseOpenCTIError(err);
-        this.set('createErrorMessage', `Search Tags Failed: ${userFriendlyError}`);
+        this.set('state.errorTitle', 'Search Labels Failed');
+        this.set('state.errorMessage', userFriendlyError);
+        this.set('createErrorMessage', `Search Labels Failed: ${userFriendlyError}`);
       })
       .finally(() => {
         setTimeout(() => {
