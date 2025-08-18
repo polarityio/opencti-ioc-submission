@@ -313,22 +313,20 @@
                       }}
                     </div>
                   {{else}}
-                    {{#if result.canAddToSubmit}}
-                      <button
-                        class="header-button add p-green"
-                        disabled={{or interactionDisabled (not result.canAddToSubmit)}}
-                        {{action "addToSubmissionList" result index bubbles=false}}                              
-                      >
-                        {{fa-icon icon="plus" fixedWidth=true}}
-                        {{bs-tooltip
-                          title=(if
-                            result.canAddToSubmit
-                            "Add to submission list"
-                            "Already exists as both Indicator and Observable"
-                          )
-                        }}
-                      </button> 
-                    {{/if}}
+                    <button
+                      class="header-button add p-green {{unless result.canAddToSubmit "fa-blank"}}"
+                      disabled={{interactionDisabled}}
+                      {{action "addToSubmissionList" result index bubbles=false}}                              
+                    >
+                      {{fa-icon icon="plus" fixedWidth=true}}
+                      {{bs-tooltip
+                        title=(if
+                          result.canAddToSubmit
+                          "Add to submission list"
+                          "Already exists as both Indicator and Observable"
+                        )
+                      }}
+                    </button>
                   {{/if}}
                 </div>
               </div>
