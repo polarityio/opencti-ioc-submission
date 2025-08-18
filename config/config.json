@@ -14,6 +14,17 @@
     "email",
     "MAC"
   ],
+  "dataTypes": [
+    "domain",
+    "url",
+    "IPv4",
+    "IPv6",
+    "MD5",
+    "SHA1",
+    "SHA256",
+    "email",
+    "MAC"
+  ],
   "defaultColor": "light-pink",
   "styles": [
     "./client/styles.less"
