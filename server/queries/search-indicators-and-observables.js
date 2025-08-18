@@ -140,6 +140,22 @@ async function searchIndicatorsAndObservablesForEntity(entity, options) {
         filterGroups: []
       };
 
+      if (entity.isURL) {
+        // many URLs in OpenCTI end with a `/` so when searching URLs we search both with and without a trailing slash
+        variables.filters.filters.push({
+          key: 'name',
+          operator: 'eq',
+          values: [entity.value.endsWith('/') ? entity.value.slice(0, -1) : entity.value + '/'],
+          mode: 'or'
+        });
+        variables.filters.filters.push({
+          key: 'value',
+          operator: 'eq',
+          values: [entity.value.endsWith('/') ? entity.value.slice(0, -1) : entity.value + '/'],
+          mode: 'or'
+        });
+      }
+
       if (entity.isSHA1) {
         variables.filters.filters.push({
           key: 'hashes.SHA-1',
