@@ -2,11 +2,28 @@
 
 The Polarity OpenCTI integration allows Polarity to search your instance of OpenCTI to return found indicators and observables. The integration also allows you to create and delete indicators and observables in bulk from OpenCTI with granular permission control.
 
-| ![](assets/todo.png) | ![](assets/todo.png) | ![](assets/todo.png) | ![](assets/todo.png) |
-|----------------------|----------------------|----------------------|----------------------|
-| *Search Results*     | *Submit Indicators*  | *Submit Observables*  | *Submit Both*       |
-
+| ![](assets/search.png)              | ![](assets/details.png)                         | ![](assets/edit.png)          |
+|-------------------------------------|-------------------------------------------------|-------------------------------|
+| *Search Indicators and Observables* | *View Details*                                  | *Edit Observables/Indicators* |
+| ![](assets/delete.png)              | ![](assets/submission.png)                      | |
+| *Delete Indicators and Observables* | *Submit new Indicators and Observables* | |
 ## OpenCTI Integration Options
+
+### OpenCTI API URL
+
+The API URL of your OpenCTI instance to include the schema (i.e., https://) and port if applicable
+
+### API Key
+The API Key used for OpenCTI API access
+
+### Exact Match Search
+If checked, the integration will run an exact equality search on the `name` or `value` property of the indicator or observable.  Defaults to enabled.  If disabled, the search will be a `contains` search on all fields which can return a large number of results for domain, url, and email searches
+
+### Deletion Permissions
+Control which types of items users can delete from OpenCTI. Defaults to no deletion permissions for security.  This option must be set to "Lock and show option for all users".
+
+### Automatic Relationship Creation
+Control automatic creation of a bi-directional relationship between indicators and observables during submission. This option must be set to "Lock and show option for all users".
 
 ## Installation Instructions
 
