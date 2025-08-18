@@ -330,15 +330,13 @@ const CREATE_OBSERVABLE_MUTATION = `
   ) {
     stixCyberObservableAdd(
       type: $type
-
       DomainName: $DomainName
       EmailAddr: $EmailAddr
-      StixFile: $StixFile
       IPv4Addr: $IPv4Addr
       IPv6Addr: $IPv6Addr
       MacAddr: $MacAddr
       Url: $Url
-
+      StixFile: $StixFile
       x_opencti_score: $score
       x_opencti_description: $description
       createdBy: $createdBy
@@ -355,10 +353,19 @@ const CREATE_OBSERVABLE_MUTATION = `
       createdBy {
         name
       }
+      creators {
+        name
+      }
       objectLabel {
         value
         color
       }
+      ... on StixFile {
+        hashes {
+          algorithm
+          hash
+        }
+      }      
     }
   }
 `;

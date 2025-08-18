@@ -12,6 +12,7 @@ const {
 const {
   STIX_PATTERNS,
   ENTITY_TYPE_BY_OBSERVABLE_TYPE,
+  POLARITY_HASH_TYPE_TO_OPENCTI_HASH_ALGORITHM,
   ENTITY_TYPE_BY_OBSERVABLE_SUBMISSION_KEY
 } = require('../core/constants');
 const { makeOpenCTIRequest } = require('../core');
@@ -30,7 +31,7 @@ async function createIOC(
   options
 ) {
   const Logger = logging.getLogger();
-
+  
   try {
     const variables = createVariablesByType(
       typeToCreate,
@@ -40,6 +41,18 @@ async function createIOC(
       labels,
       options
     );
+
+    if (POLARITY_HASH_TYPE_TO_OPENCTI_HASH_ALGORITHM[iocToCreate.entityType]) {
+      variables.StixFile = {
+        hashes: [
+          {
+            algorithm:
+              POLARITY_HASH_TYPE_TO_OPENCTI_HASH_ALGORITHM[iocToCreate.entityType],
+            hash: iocToCreate.entityValue.toLowerCase()
+          }
+        ]
+      };
+    }
 
     Logger.trace(
       {
@@ -144,6 +157,7 @@ const createVariablesByType = (
         description,
         score: parseInt(score),
         labels,
+        StixFile: null,
         createdBy: null
       }
     : false;
