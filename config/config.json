@@ -1,4 +1,5 @@
 {
+  "polarityIntegrationUuid": "a58310c0-7c0b-11f0-8636-e9de695eeef2",
   "name": "OpenCTI IOC Submission",
   "acronym": "OCTI+",
   "description": "Search and submit OpenCTI Observables and Indicators",
@@ -51,7 +52,7 @@
     {
       "key": "exactMatchSearching",
       "name": "Exact Match Search",
-      "description": "If checked, the integration will run an exact equality search on the `name` or `value` property of the indicator or observable.  Defaults to enabled.  If disabled, the search will be a `contains` search on all fields which can return a large number of results for domain, url, and email searches",
+      "description": "If checked, the integration will run an exact equality search on the `name`, `value`, or `hash` properties of the indicator or observable as applicable.  Defaults to enabled.  If disabled, the search will be a `contains` search on all fields which can return a large number of results for domain, url, and email searches",
       "default": true,
       "type": "boolean",
       "userCanEdit": false,
@@ -80,7 +81,7 @@
     {
       "key": "automaticLinking",
       "name": "Automatic Relationship Creation",
-      "description": "Control automatic creation of a bi-directional relationship between indicators and observables during submission. This option must be set to \"Lock and show option for all users\".",
+      "description": "Control automatic creation of a bidirectional relationship between indicators and observables during submission. This option must be set to \"Lock and show option for all users\".",
       "default": true,
       "type": "boolean",
       "userCanEdit": false,

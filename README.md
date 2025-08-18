@@ -17,13 +17,13 @@ The API URL of your OpenCTI instance to include the schema (i.e., https://) and 
 The API Key used for OpenCTI API access
 
 ### Exact Match Search
-If checked, the integration will run an exact equality search on the `name` or `value` property of the indicator or observable.  Defaults to enabled.  If disabled, the search will be a `contains` search on all fields which can return a large number of results for domain, url, and email searches
+If checked, the integration will run an exact equality search on the `name`, `value`, or `hash` properties of the indicator or observable as applicable.  Defaults to enabled.  If disabled, the search will be a `contains` search on all fields which can return a large number of results for domain, url, and email searches
 
 ### Deletion Permissions
 Control which types of items users can delete from OpenCTI. Defaults to no deletion permissions for security.  This option must be set to "Lock and show option for all users".
 
 ### Automatic Relationship Creation
-Control automatic creation of a bi-directional relationship between indicators and observables during submission. This option must be set to "Lock and show option for all users".
+Control automatic creation of a bidirectional relationship between indicators and observables during submission. This option must be set to "Lock and show option for all users".
 
 ## Installation Instructions
 
