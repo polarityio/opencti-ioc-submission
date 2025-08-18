@@ -1,0 +1,1032 @@
+{{! modal-open sets a minimum height so our absolute positioned modal is always visible }}
+<div
+  class="{{if (or showDeletionModal showEditModal) "modal-open"}}"
+  role="main"
+  aria-label="OpenCTI Integration Interface"
+>
+  <div
+    class="modal-mask {{if (or showDeletionModal showEditModal) "visible" "invisible"}}"
+    aria-hidden="{{if (or showDeletionModal showEditModal) "false" "true"}}"
+  ></div>
+
+  {{! Flash Message Notifications - Local State Implementation }}
+  {{#each editNotifications as |notification|}}
+    <div
+      class="alert alert-{{
+        if
+        (eq notification.type "danger")
+        "danger"
+        (if (eq notification.type "success") "success" "info")
+      }} notification-flash mb-2"
+    >
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          {{fa-icon icon=notification.icon fixedWidth=true class="mr-2"}}
+          {{notification.message}}
+        </div>
+        <button class="btn btn-link p-0" {{action "dismissNotification" notification}}>
+          {{fa-icon icon="times" fixedWidth=true}}
+        </button>
+      </div>
+    </div>
+  {{/each}}
+
+  {{#if showDeletionModal}}
+    <div
+      class="integration-modal"
+      role="dialog"
+      aria-labelledby="deletion-modal-title"
+      aria-modal="true"
+    >
+      <div class="title">
+        <div class="content" id="deletion-modal-title">
+          Delete {{capitalize resultToDelete.type}}
+        </div>
+      </div>
+      <div class="content" role="form" aria-describedby="deletion-warning">
+        <div class="mb-2" id="deletion-warning">
+          {{fa-icon
+            icon="exclamation-triangle"
+            fixedWidth=true
+            class="p-red"
+            aria-hidden="true"
+          }}
+          You are about to delete the {{resultToDelete.type}}
+          <b class="p-value-break-all">
+            {{resultToDelete.displayName}}
+          </b>
+          from OpenCTI.
+        </div>
+        <div class="alert alert-warning p-1">
+          <small>
+            {{fa-icon icon="info-circle" fixedWidth=true class="mr-1" aria-hidden="true"}}
+            Deleting an {{capitalize resultToDelete.type
+            }} cannot be undone and will permanently remove {{capitalize
+              resultToDelete.type
+            }} data from OpenCTI.
+          </small>
+        </div>
+      </div>
+      <div class="footer">
+        <div class="content d-flex align-items-center justify-content-end">
+          <button
+            class="btn btn-naked p-btn short outline"
+            disabled={{isDeleting}}
+            {{action "cancelItemDeletion"}}
+          >
+            Cancel
+          </button>
+          <button
+            class="btn btn-danger p-btn short outline"
+            disabled={{isDeleting}}
+            {{action "confirmDelete"}}
+          >
+            {{#if isDeleting}}
+              {{fa-icon icon="spinner-third" fixedWidth=true spin=true}}
+            {{else}}
+              Delete
+            {{/if}}
+          </button>
+        </div>
+      </div>
+    </div>
+  {{/if}}
+
+  {{#if showEditModal}}
+    <div class="integration-modal">
+      <div class="title">
+        <div class="content">
+          Edit {{capitalize resultToEdit.type}}
+        </div>
+      </div>
+      <div class="content">
+        <div class="form-group">
+          <label class="p-key">
+            {{resultToEdit.openCtiTypeHuman}}
+          </label>
+          <div class="p-value-break-all">
+            {{resultToEdit.entityValue}}
+          </div>
+        </div>
+
+        {{! Edit Score Input }}
+        <div class="input-container">
+          <label class="small ifta-label">
+            Score
+          </label>
+          {{input
+              type="number"
+              min=0
+              max=100
+              class=(concat "mb-0 ifta-field" (if uiElement.error " error"))
+              value=editFormData.score
+              placeholder=50
+              disabled=interactionDisabled
+              required=false
+          }}
+        </div>
+        <div class="form-element-instruction">
+          Score from 0-100 (default: 50)
+        </div>
+
+        {{! Edit Description Input }}
+        <div
+          class="mb-0 input-container text-area-container {{if interactionDisabled "disabled"}} {{
+          if uiElement.error "error"
+          }}"
+        >
+          <label class="small">
+            Description
+          </label>
+          {{textarea
+              class="ifta-field"
+              rows=5
+              placeholder="Enter a description"
+              value=editFormData.description
+              disabled=interactionDisabled
+              required=false
+          }}
+        </div>
+        <div class="form-element-instruction">
+          Optional description for this {{resultToEdit.type}}
+        </div>
+      </div>
+      <div class="footer">
+        <div class="content d-flex align-items-center justify-content-end">
+          <button
+            class="btn btn-naked p-btn short outline"
+            disabled={{isEditing}}
+            {{action "cancelItemEdit"}}
+          >
+            Cancel
+          </button>
+          <button
+            class="btn btn-primary p-btn short outline"
+            disabled={{isEditing}}
+            {{action "saveItemEdit"}}
+          >
+            {{#if isEditing}}
+              {{fa-icon icon="spinner-third" fixedWidth=true spin=true}}
+            {{else}}
+              Save
+            {{/if}}
+          </button>
+        </div>
+      </div>
+    </div>
+  {{/if}}
+
+  {{#if state.errorMessage}}
+    <div class="alert alert-danger error-message mt-2">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <div class="error-message-title">
+          {{#if state.errorTitle}}
+            {{state.errorTitle}}
+          {{else}}
+            Unexpected Error Occurred
+          {{/if}}
+        </div>
+        <div>
+          {{fa-icon
+            icon="times"
+            fixedWidth=true
+            click=(set state "errorMessage" "")
+            class="close-icon"
+          }}
+        </div>
+      </div>
+      <div class="error-scrolling-container">
+        <pre>{{state.errorMessage}}</pre>
+      </div>
+    </div>
+  {{/if}}
+
+
+  {{! Display results that are found }}
+  {{#if hasIndicatorsInOpenCTI}}
+    <div class="d-flex align-items-center justify-content-between mt-2 mb-1">
+      <h1 class="p-title my-0">
+        Found in OpenCTI
+      </h1>
+      {{#if hasFoundInOpenCTIIndicatorsAvailableToSubmit}}
+        <button
+          class="no-style-button p-action"
+          title="Add all IOCs to Submission List"
+          disabled={{interactionDisabled}}
+          {{action "addAllCurrentlyInOpenCTIToBeSubmitted"}}
+        >
+          Add All
+        </button>
+      {{/if}}
+    </div>
+    <div class="search-results">
+      {{#if foundInOpenCTIIsEmpty}}
+        <div>
+          <span class="p-value">
+            All IOCs are selected for submission
+          </span>
+        </div>
+      {{/if}}
+      {{#each unifiedResults as |result index|}}
+        {{#if (and result.foundInOpenCTI (not result.__toBeSubmitted))}}
+          <div class="search-result-container">
+            <div
+              class="search-result-header d-flex align-items-start justify-content-between"
+              {{action (toggle "__viewIndicatorDetails" result)}}
+            >
+              <div class="d-flex align-items-start justify-content-start mr-1">
+                <div>
+                  {{#if result.__viewIndicatorDetails}}
+                    {{fa-icon icon="chevron-up" fixedWidth=true class="p-grey"}}
+                  {{else}}
+                    {{fa-icon icon="chevron-down" fixedWidth=true class="p-grey"}}
+                  {{/if}}
+                </div>
+                {{#if result.__isNewlyAdded}}
+                  <div class="ml-1">
+                    {{fa-icon
+                      icon="check-circle"
+                      fixedWidth=true
+                      class="p-green icon-small"
+                    }}
+                    {{bs-tooltip title="Indicator was successfully submitted to OpenCTI"}}
+                  </div>
+                {{/if}}
+                <div
+                  class="ml-1 mr-1 search-result-entity-value {{
+                    if result.__isOnExclusionList "p-orange"
+                  }} {{if result.__hasSubmissionError "p-red"}}"
+                  style="cursor: pointer;"
+                  title="Click to edit description and score"
+                >
+                  <div>
+                    <div>
+                      {{result.displayName}}
+                    </div>
+                    {{#if result.pattern}}
+                      <div class="p-footnote limited-lines">
+                        {{result.pattern}}
+                      </div>
+                    {{/if}}
+                  </div>                  
+                </div>
+              </div>
+              <div class="d-flex align-items-start justify-content-end">
+                <div class="mr-1">
+                  {{#if (eq result.type "observable")}}
+                    <span>
+                      {{fa-icon icon="binoculars" fixedWidth=true class="gray-icon"}}
+                      {{bs-tooltip title="Observable"}}
+                    </span>
+                  {{/if}}
+
+                  {{#if (eq result.type "indicator")}}
+                    <span>
+                      {{fa-icon icon="fingerprint" fixedWidth=true class="gray-icon"}}
+                      {{bs-tooltip title="Indicator"}}
+                    </span>
+                  {{/if}}
+                </div>
+                <div class="d-flex align-items-start justify-content-end flex-shrink-0">
+                  {{#if result.__hasSubmissionError}}
+                    <div>
+                      {{fa-icon
+                        icon="exclamation-triangle"
+                        fixedWidth=true
+                        class="p-red button-width-icon"
+                      }}
+                      {{bs-tooltip
+                        title="An error was encountered submitting this indicator. Click to view error."
+                      }}
+                    </div>
+                  {{else if result.__isOnExclusionList}}
+                    <div>
+                      {{fa-icon
+                        icon="empty-set"
+                        fixedWidth=true
+                        class="p-orange button-width-icon"
+                      }}
+                      {{bs-tooltip
+                        title="This indicator is contained on a system-wide exclusion list and cannot be submitted"
+                      }}
+                    </div>
+                  {{else}}
+                    <button
+                      class="header-button add p-green {{unless result.canAddToSubmit "fa-blank"}}"
+                      disabled={{interactionDisabled}}
+                      {{action "addToSubmissionList" result index bubbles=false}}                              
+                    >
+                      {{fa-icon icon="plus" fixedWidth=true}}
+                      {{bs-tooltip
+                        title=(if
+                          result.canAddToSubmit
+                          "Add to submission list"
+                          "Already exists as both Indicator and Observable"
+                        )
+                      }}
+                    </button>
+                  {{/if}}
+                </div>
+              </div>
+            </div>
+            {{#if result.__viewIndicatorDetails}}
+              <div class="search-result-content">
+                {{#if result.__hasSubmissionError}}
+                  <div class="alert alert-danger error-message mt-2">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                      <div class="error-message-title">
+                        Error submitting indicator
+                      </div>
+                      <div>
+                        {{fa-icon
+                          icon="times"
+                          fixedWidth=true
+                          click=(pipe-action
+                            (set result "__errorMessage" "")
+                            (set result "__hasSubmissionError" false)
+                            (set result "__viewError" false)
+                          )
+                          class="close-icon"
+                        }}
+                      </div>
+                    </div>
+                    <div class="error-scrolling-container">
+                      <pre>
+                        {{result.__errorMessage}}
+                      </pre>
+                    </div>
+                  </div>
+                {{/if}}
+                <div class="mt-0 mb-0 d-flex align-items-center justify-content-between">
+                  <div class="d-flex mt-1 align-items-center justify-content-between">
+                    <h2 class="p-title my-0">
+                      {{humanize result.type}}
+                    </h2>
+                    {{!-- Edit Button --}}
+                    <button
+                      class="header-button edit ml-1"
+                      disabled={{not result.__viewIndicatorDetails}}
+                      {{action "initiateItemEdit" result}}
+                    >
+                      {{fa-icon icon="pencil" fixedWidth=true}}
+                      {{bs-tooltip triggerEvents="hover" title=(concat "Edit " result.type)}}
+                    </button>
+                    {{!-- Delete Button --}}
+                    {{#if (and (eq result.type "indicator") hasIndicatorDeletePermission)}}
+                      <button
+                        class="header-button delete ml-1"
+                        disabled={{interactionDisabled}}
+                        {{action "initiateItemDeletion" result}}
+                      >
+                        {{fa-icon icon="trash" fixedWidth=true}}
+                        {{bs-tooltip triggerEvents="hover" title="Delete Indicator"}}
+                      </button>
+                    {{else if (and (eq result.type "observable") hasObservableDeletePermission)}}
+                      <button
+                        class="header-button delete ml-1"
+                        disabled={{interactionDisabled}}
+                        {{action "initiateItemDeletion" result}}
+                      >
+                        {{fa-icon icon="trash" fixedWidth=true}}
+                        {{bs-tooltip triggerEvents="hover" title="Delete Observable"}}
+                      </button>
+                    {{/if}}
+                  </div>
+                  <div class="flex-shrink-0">
+                    <a href={{result.webLink}}>
+                      View in OpenCTI {{fa-icon
+                        icon="external-link-square"
+                        fixedWidth=true
+                        class="external-link-icon p-link"
+                      }}
+                    </a>
+                  </div>
+                </div>
+                <div class="search-result-indicator-container">
+                  <div class="d-flex align-items-start justify-content-between">
+                    <div class="mr-1">
+                      {{#if (eq result.type "indicator")}}
+                        {{result.patternType}}
+                      {{else}}
+                        {{result.openCtiTypeHuman}}  
+                      {{/if}}                      
+                    </div>
+                    <div class="flex-shrink-0 score-box {{if (gt result.score 75) "red" (if (gt result.score 50) "orange" (if (gt result.score 20) "blue" "green"))}}">
+                      {{#if result.score}}
+                        {{result.score}} / 100
+                      {{else}}
+                        -- / 100
+                      {{/if}}
+                    </div>
+                  </div>
+                  <div>
+                    <span class="p-key">
+                      ID:
+                    </span>
+                    <span class="p-value">
+                      {{result.id}}
+                    </span>
+                  </div>
+                  {{#if block.entity.isHash}}
+                    {{#if (gt result.hashes.length 0)}}
+                      {{#each result.hashes as | hashType |}}
+                        <div>
+                          <span class="p-key">Is Hash Match?</span>
+                          <span class="p-value">
+                            {{#if (eq (lowercase hashType.hash) (lowercase result.entityValue))}}
+                              Yes ({{hashType.algorithm}})
+                            {{else}}
+                              No
+                            {{/if}}      
+                          </span>
+                        </div>
+                      {{/each}}
+                    {{else}}
+                      <div>
+                        <span class="p-key">Is Hash Match?</span>
+                        <span class="p-value">No</span>
+                      </div>
+                    {{/if}}
+                  {{/if}}
+                  {{#if result.pattern}}
+                    <div>
+                      <span class="p-key">
+                        Pattern:
+                      </span>
+                      {{#if (lt result.pattern.length 250)}}
+                        <span class="p-value-break-all">
+                          {{result.pattern}}
+                        </span>
+                      {{else}}
+                        <div class="p-value-break-all p-block">
+                          {{result.pattern}}
+                        </div>
+                      {{/if}}
+                    </div>
+                  {{/if}}
+                  {{#if (eq result.type "indicator")}}
+                    <div>
+                      <span class="p-key">Confidence:</span>
+                      <span class="p-value">{{result.confidence}}</span>
+                    </div>
+                  {{/if}}
+                  <div>
+                    <span class="p-key">
+                      Author:
+                    </span>
+                    <span class="p-value">
+                      {{#if result.createdBy}}
+                        {{result.createdBy}}
+                      {{else}}
+                        --
+                      {{/if}}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="p-key">
+                      Creators:
+                    </span>
+                    <span>
+                      {{#if (gt result.creators.length 0)}}
+                        {{join result.creators ", "}}
+                      {{else}}
+                        --
+                      {{/if}}
+                    </span>
+                  </div>
+                  <div>
+                    <span class="p-key">
+                      Created:
+                    </span>
+                    <span class="p-value">
+                      {{moment-format result.createdAt "YYYY-MM-DD" timeZone=timezone}}
+                    </span>
+                    <span class="p-key ml-1">
+                      Marking:
+                    </span>
+                    <span class="p-value">
+                      TLP: Clear
+                    </span>
+                  </div>
+                  {{#if (gt result.labels.length 0)}}
+                    <div class="mt-1">
+                      {{#each result.labels as |label|}}
+                        <span class="p-tag">
+                          {{label}}
+                        </span>
+                      {{/each}}
+                    </div>
+                  {{/if}}
+                  <div class="mt-1">
+                    {{result.description}}
+                  </div>
+                </div>
+              </div>
+            {{/if}}
+          </div>
+        {{/if}}
+      {{/each}}
+    </div>
+  {{/if}}
+
+  {{! Display entities that are not in OpenCTI }}
+  {{#if hasIndicatorNotInOpenCTI}}
+    <div class="d-flex align-items-center justify-content-between mt-2 mb-1">
+      <h1 class="p-title my-0">
+        Not in OpenCTI
+      </h1>
+      {{#if hasNotInOpenCTIIndicatorsAvailableToSubmit}}
+        <button
+          class="no-style-button p-action"
+          title="Add all IOCs to Submission List"
+          disabled={{interactionDisabled}}
+          {{action "addAllNotInOpenCTIBeSubmitted"}}
+        >
+          Add All
+        </button>
+      {{/if}}
+    </div>
+    <div class="search-results">
+      {{#each unifiedResults as |result index|}}
+        {{#if (and (not result.foundInOpenCTI) (not result.__toBeSubmitted))}}
+          <div class="search-result-container">
+            <div
+              class="search-result-header d-flex align-items-start justify-content-between"
+            >
+              <div
+                class="{{if result.__isOnExclusionList "p-orange"}} {{
+                  if result.__hasSubmissionError "p-red"
+                }} mr-1"
+              >
+                <span class="search-result-entity-value">
+                  {{result.entityValue}}
+                </span>
+                {{#if result.__isOnExclusionList}}
+                  <span class="p-footnote">
+                    (exclusion listed)
+                  </span>
+                {{/if}}
+              </div>
+              <div class="d-flex align-items-start justify-content-end">
+                <div class="mr-1">
+                  <span class="p-footnote">
+                    {{#if result.openCtiTypeHuman}}
+                      {{result.openCtiTypeHuman}}
+                    {{else}}
+                      Unknown
+                    {{/if}}
+                  </span>
+                </div>
+                {{#if result.__hasSubmissionError}}
+                  <div>
+                    {{#if result.__viewError}}
+                      <span
+                        class="p-action ml-1"
+                        {{action (toggle "__viewError" result)}}
+                      >
+                        Hide Error {{fa-icon icon="chevron-up" fixedWidth=true}}
+                      </span>
+                    {{else}}
+                      <span
+                        class="p-action ml-1"
+                        {{action (toggle "__viewError" result)}}
+                      >
+                        View Error {{fa-icon icon="chevron-down" fixedWidth=true}}
+                      </span>
+                    {{/if}}
+                  </div>
+                {{/if}}
+                {{#if result.__isOnExclusionList}}
+                  <div>
+                    {{fa-icon
+                      icon="empty-set"
+                      fixedWidth=true
+                      class="p-orange button-width-icon"
+                    }}
+                    {{bs-tooltip
+                      title="This indicator is contained on a system-wide exclusion list and cannot be submitted"
+                    }}
+                  </div>
+                {{else}}
+                  <div class="d-flex align-items-center justify-content-end">
+                    {{#if result.__hasSubmissionError}}
+                      <div>
+                        {{fa-icon
+                          icon="exclamation-triangle"
+                          fixedWidth=true
+                          class="p-red button-width-icon"
+                        }}
+                        {{bs-tooltip
+                          title="An error was encountered submitting this indicator"
+                        }}
+                      </div>
+                    {{else}}
+                      <div class="d-flex align-items-center">
+                        {{#unless result.isDuplicate}}
+                          <button
+                            class="header-button add p-green"
+                            disabled={{interactionDisabled}}
+                            {{action "addToSubmissionList" result index bubbles=false}}
+                          >
+                            {{fa-icon icon="plus" fixedWidth=true}}
+                            {{bs-tooltip title="Add to submission list"}}
+                          </button>
+                        {{else}}
+                          <div class="p-footnote text-muted">
+                            <span class="mr-1">
+                              {{fa-icon icon="check-circle" class="text-success"}}
+                            </span>
+                            Already exists as both Indicator and Observable
+                          </div>
+                        {{/unless}}
+                      </div>
+                    {{/if}}
+                  </div>
+                {{/if}}
+              </div>
+            </div>
+            {{#if result.__viewError}}
+              <div class="search-result-content">
+                <div class="alert alert-danger error-message mt-2">
+                  <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div class="error-message-title">
+                      Error submitting indicator
+                    </div>
+                    <div>
+                      {{fa-icon
+                        icon="times"
+                        fixedWidth=true
+                        click=(pipe-action
+                          (set result "__errorMessage" "")
+                          (set result "__hasSubmissionError" false)
+                          (set result "__viewError" false)
+                        )
+                        class="close-icon"
+                      }}
+                    </div>
+                  </div>
+                  <div class="error-scrolling-container">
+                    <pre>
+                      {{result.__errorMessage}}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            {{/if}}
+          </div>
+        {{/if}}
+      {{/each}}
+    </div>
+    {{#if notInOpenCTIIsEmpty}}
+      <div>
+        <span class="p-value">
+          All IOCs are selected for submission
+        </span>
+      </div>
+    {{/if}}
+  {{/if}}
+
+  {{! Flash Message Notifications - Local State Implementation }}{{! Flash Message Notifications - Local State Implementation }}
+  {{#each submissionNotifications as |notification|}}
+    <div
+      class="alert alert-{{
+        if
+        (eq notification.type "danger")
+        "danger"
+        (if (eq notification.type "success") "success" "info")
+      }} notification-flash mb-2"
+    >
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          {{fa-icon icon=notification.icon fixedWidth=true class="mr-2"}}
+          {{notification.message}}
+        </div>
+        <button class="btn btn-link p-0" {{action "dismissNotification" notification}}>
+          {{fa-icon icon="times" fixedWidth=true}}
+        </button>
+      </div>
+    </div>
+  {{/each}}
+
+  {{! Display entities that are to be submitted }}
+  {{#if hasIndicatorToBeSubmitted}}
+    <div class="d-flex align-items-center justify-content-between mt-3 mb-1">
+      <h1 class="p-title my-0">
+        Submit to OpenCTI
+      </h1>
+      {{#if hasIndicatorToBeSubmitted}}
+        <button
+          class="no-style-button p-action"
+          title="Remove all IOCs from Submission List"
+          disabled={{interactionDisabled}}
+          {{action "removeAllToBeSubmitted"}}
+        >
+          Remove All
+        </button>
+      {{/if}}
+    </div>
+    <div class="p-footnote mb-1">
+      Listed entities will be submitted to OpenCTI
+    </div>
+    {{#if (not hasIndicatorToBeSubmitted)}}
+      <div>
+        <span class="p-value">
+          No indicators selected
+        </span>
+      </div>
+    {{/if}}
+    <div class="search-results">
+      {{#each unifiedResults as |result index|}}
+        {{#if result.__toBeSubmitted}}
+          <div class="search-result-container">
+            <div
+              class="search-result-header d-flex align-items-start justify-content-between"
+            >
+              <div class="search-result-entity-value mr-1">
+                <div>
+                {{result.entityValue}}
+                </div>
+                <div class="p-footnote">
+                  {{result.openCtiTypeHuman}}
+                </div>
+              </div>
+              <div class="d-flex align-items-start justify-content-end">
+                {{#if 
+                  (and 
+                    (or 
+                      result.isIndicator 
+                      result.isObservable 
+                      (and result.__submitAsObservable result.__submitAsIndicator)
+                    )
+                    (eq block.userOptions.automaticLinking true)
+                  )
+                }}
+                  <div class="mr-1">
+                    {{fa-icon icon="link" class="gray-icon icon-small" fixedWidth=true}}
+                    {{#if result.isIndicator}}
+                      {{bs-tooltip triggerEvents="hover" title="The existing indicator will be linked to the created observable"}}
+                    {{else if result.isObservable}}
+                      {{bs-tooltip triggerEvents="hover" title="The existing observable will be linked to the created indicator"}}
+                    {{else}}
+                      {{bs-tooltip triggerEvents="hover" title="The created indicator and observable will be linked"}}
+                    {{/if}}
+                  </div>
+                {{/if}}
+                <label
+                  class="mr-1 d-flex align-items-center justify-content-between submit-checkbox {{
+                    if result.isObservable "disabled" ""
+                  }}"
+                >
+                  {{fa-icon
+                    icon="binoculars"
+                    fixedWidth=true
+                    class=(if result.isObservable "disabled" "")
+                  }}
+                  {{input
+                    type="checkbox"
+                    checked=result.__submitAsObservable
+                    disabled=result.isObservable
+                  }}
+                  {{#if result.isObservable}}
+                    {{bs-tooltip triggerEvents="hover" title="Entity is already an Observable"}}
+                  {{else}}
+                    {{bs-tooltip triggerEvents="hover" title=(concat "Submit " result.openCtiTypeHuman  " as new Observable")}}
+                  {{/if}}
+                </label>
+                <label
+                  class="mr-1 d-flex align-items-center justify-content-between submit-checkbox {{
+                    if result.isIndicator "disabled" ""
+                  }}"
+                >
+                  {{fa-icon icon="fingerprint" fixedWidth=true}}
+                  {{input
+                    type="checkbox"
+                    checked=result.__submitAsIndicator
+                    disabled=result.isIndicator
+                  }}
+                  {{#if result.isIndicator}}
+                    {{bs-tooltip triggerEvents="hover" title="Entity is already an Indicator"}}
+                  {{else}}
+                    {{bs-tooltip triggerEvents="hover" title=(concat "Submit " result.openCtiTypeHuman  " as new Indicator")}}
+                  {{/if}}
+                </label>
+                <button
+                  class="header-button minus p-orange"
+                  disabled={{interactionDisabled}}
+                  {{action "removeFromSubmissionList" result index}}
+                >
+                  {{fa-icon icon="minus" fixedWidth=true}}
+                  {{bs-tooltip triggerEvents="hover" title="Remove entity from submission list"}}
+                </button>
+              </div>
+            </div>
+          </div>
+        {{/if}}
+      {{/each}}
+    </div>
+  {{/if}}
+
+  {{! Show submision options }}
+  {{#if hasIndicatorToBeSubmitted}}
+    <div class="d-flex align-items-center justify-content-between mt-2 mb-1">
+      <h2 class="p-title my-0">
+        Submission Options
+      </h2>
+      <div>
+        <span class="p-action" {{action "resetSubmissionOptions"}}>
+          Reset Options
+        </span>
+      </div>
+    </div>
+
+    {{! Score Input }}
+    <div class="input-container">
+      <label class="small ifta-label">
+        Score
+      </label>
+      {{input
+        type="number"
+        min=0
+        max=100
+        class=(concat "ifta-field" (if uiElement.error " error"))
+        value=submissionState.score
+        placeholder="Enter a Score"
+        disabled=interactionDisabled
+        required=false
+      }}
+    </div>
+
+    {{! Description Input }}
+    <div
+      class="input-container text-area-container {{if interactionDisabled "disabled"}} {{
+        if uiElement.error "error"
+      }}"
+    >
+      <label class="small">
+        Description
+      </label>
+      {{textarea
+        class="ifta-field"
+        rows=5
+        placeholder="Enter a description"
+        value=submissionState.description
+        disabled=interactionDisabled
+        required=false
+      }}
+    </div>
+
+    {{! Associated Labels }}
+    <div>
+      <div class="d-flex align-items-center justify-content-start">
+        <h1 class="p-title align-self-baseline">
+          Labels
+        </h1>
+        {{#unless (or editingTags interactionDisabled)}}
+          <button
+            class="btn icon-btn p-action align-self-baseline"
+            title="Edit Tags"
+            {{action (toggle "editingTags" this)}}
+          >
+            {{fa-icon icon="plus-circle" fixedWidth=true}} Edit Labels
+          </button>
+        {{/unless}}
+      </div>
+      {{#if (eq selectedTags.length 0)}}
+        <div class="p-footnote">
+          No Labels Selected
+        </div>
+      {{else}}
+        {{#each selectedTags as |tag tagIndex|}}
+          <span class="tag link-tag d-inline-flex align-items-center">
+            <span
+              class="p-tag"
+              style="
+                  border: 1px solid {{
+                or tag.color "#e4e9f2"
+              }};
+                  color: {{or tag.color "#07213a"}};"
+            >
+              {{tag.value}}
+              {{#if tag.isNew}}
+                <span>
+                  {{fa-icon "plus-circle" fixedWidth=true}}
+                </span>
+              {{/if}}
+
+              {{#if (not interactionDisabled)}}
+                <span class="remove-icon-container" {{action "deleteTag" tag}}>
+                  {{fa-icon "times" class="tag-close-icon" fixedWidth=true}}
+                </span>
+              {{/if}}
+            </span>
+          </span>
+        {{/each}}
+      {{/if}}
+
+      {{#if editingTags}}
+        <div class="add-container mt-2">
+          <div class="input-container mb-2">
+            <label class="small ifta-label">
+              Select Labels to Add
+            </label>
+            {{#power-select-multiple
+              eventType="click"
+              rootEventType="click"
+              triggerClass="p-power-select-multiple-trigger"
+              dropdownClass="p-power-select-dropdown"
+              selected=selectedTag
+              options=existingTags
+              searchEnabled=true
+              search=(action "searchTags")
+              placeholder="Search Labels"
+              searchField="name"
+              searchMessage="Loading Labels ..."
+              loadingMessage="Loading Labels ..."
+              searchPlaceholder="Search Labels"
+              closeOnSelect=true
+              disabled=interactionDisabled
+              onOpen=(action "searchTags" "")
+              onChange=(action (mut selectedTag)) as |tag|
+            }}
+              <span
+                class="p-tag"
+                style="display: inline-block;
+                          font-weight: normal;
+                          word-break: break-word;
+                          line-height: 1.2em;
+                          font-size: 12px;
+                          background-color: #fff;
+                          border: 1px solid {{
+                  or tag.color "#e4e9f2"
+                }};
+                          padding: 2px 10px;
+                          border-radius: 16px;
+                          margin: 0px;
+                          color: {{
+                  or tag.color "#07213a"
+                }};
+                          "
+              >
+                {{tag.value}}
+                <span style="position: relative;">
+                  {{#if tag.isNew}}
+                    {{fa-icon "plus-circle" fixedWidth=true}}
+                  {{/if}}
+                </span>
+              </span>
+            {{/power-select-multiple}}
+          </div>
+          <div class="d-flex align-items-center justify-content-end mb-1 mt-2">
+            <button
+              class="btn btn-naked p-btn short outline"
+              disabled={{interactionDisabled}}
+              {{action (toggle "editingTags" this)}}
+            >
+              Cancel
+            </button>
+            <button
+              class="btn btn-polarity p-btn short outline"
+              disabled={{interactionDisabled}}
+              {{action "addTags"}}
+            >
+              Add Labels
+            </button>
+          </div>
+        </div>
+      {{/if}}
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-2">
+      <div>
+        <span class="p-footnote">
+          {{numberOfIndicatorsToBeSubmitted}} 
+          {{#if (gt numberOfIndicatorsToBeSubmitted 1)}}
+            entities
+          {{else}}
+            entity
+          {{/if}}
+          selected for submission
+        </span>
+      </div>
+      <button
+        class="btn btn-polarity p-btn"
+        disabled={{or interactionDisabled noNewOrChangedIOCToSubmit}}
+        {{action "submitItems"}}
+      >
+        {{#if createIsRunning}}
+          {{fa-icon icon="spinner-third" spin=true fixedWidth=true}}
+        {{else}}
+          Submit
+        {{/if}}
+        {{#if interactionDisabled}}
+          {{bs-tooltip title="loading..."}}
+        {{/if}}
+        {{#if noNewOrChangedIOCToSubmit}}
+          {{bs-tooltip
+            title="No IOC(s) selected for submission have changed any properties or are new"
+          }}
+        {{/if}}
+      </button>
+    </div>
+  {{/if}}
+</div>
