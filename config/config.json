@@ -41,8 +41,8 @@
     },
     {
       "key": "apiKey",
-      "name": "API Key",
-      "description": "The API (secret) Key associated with the provided Access ID",
+      "name": "OpenCTI API Key",
+      "description": "The API Key used for OpenCTI API access",
       "default": "",
       "type": "password",
       "userCanEdit": false,
