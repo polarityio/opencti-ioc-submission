@@ -139,6 +139,29 @@ async function searchIndicatorsAndObservablesForEntity(entity, options) {
         ],
         filterGroups: []
       };
+
+      if (entity.isSHA1) {
+        variables.filters.filters.push({
+          key: 'hashes.SHA-1',
+          operator: 'eq',
+          values: [entity.value],
+          mode: 'or'
+        });
+      } else if (entity.isMD5) {
+        variables.filters.filters.push({
+          key: 'hashes.MD5',
+          operator: 'eq',
+          values: [entity.value],
+          mode: 'or'
+        });
+      } else if (entity.isSHA256) {
+        variables.filters.filters.push({
+          key: 'hashes.SHA-256',
+          operator: 'eq',
+          values: [entity.value],
+          mode: 'or'
+        });
+      }
     }
 
     const response = await makeOpenCTIRequest(query, variables, options);

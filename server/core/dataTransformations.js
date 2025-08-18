@@ -103,6 +103,7 @@ const createUnifiedItemList = (indicators, observables, entity, options = {}) =>
       ? observable.creators.map((creator) => creator.name)
       : '--',
     foundInOpenCTI: true,
+    hashes: observable.hashes || [],
     type: 'observable',
     icon: 'binoculars',
     displayType: 'Observable',

@@ -427,6 +427,27 @@
                       {{result.id}}
                     </span>
                   </div>
+                  {{#if block.entity.isHash}}
+                    {{#if (gt result.hashes.length 0)}}
+                      {{#each result.hashes as | hashType |}}
+                        <div>
+                          <span class="p-key">Is Hash Match?</span>
+                          <span class="p-value">
+                            {{#if (eq (lowercase hashType.hash) (lowercase result.entityValue))}}
+                              Yes ({{hashType.algorithm}})
+                            {{else}}
+                              No
+                            {{/if}}      
+                          </span>
+                        </div>
+                      {{/each}}
+                    {{else}}
+                      <div>
+                        <span class="p-key">Is Hash Match?</span>
+                        <span class="p-value">No</span>
+                      </div>
+                    {{/if}}
+                  {{/if}}
                   {{#if result.pattern}}
                     <div>
                       <span class="p-key">
