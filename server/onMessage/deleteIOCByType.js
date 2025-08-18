@@ -20,13 +20,14 @@ const { DELETE_MUTATIONS_BY_TYPE } = require('../queries/graphql-queries');
  * @param {Object} [logger] - Optional logger instance, defaults to polarity logger
  * @returns {Promise<string>} - Deleted observable ID
  */
-async function deleteIOCByType({ idToDelete, type }, options) {
+async function deleteIOCByType({ idToDelete, type, openCtiTypeHuman }, options) {
   const Logger = logging.getLogger();
 
   Logger.trace(
     {
       idToDelete,
-      type
+      type,
+      openCtiTypeHuman
     },
     'Deleting OpenCTI observable'
   );
@@ -46,7 +47,7 @@ async function deleteIOCByType({ idToDelete, type }, options) {
 
     Logger.trace({ deletedIocId }, 'OpenCTI observable deleted successfully');
 
-    return { deletedIocId };
+    return { deletedIocId, openCtiTypeHuman };
   } catch (error) {
     Logger.error({ idToDelete, error }, 'OpenCTI observable deletion failed');
 

@@ -561,12 +561,13 @@ polarity.export = PolarityComponent.extend({
       action: 'deleteIOCByType',
       data: {
         idToDelete: resultToDelete.id,
-        type: resultToDelete.type
+        type: resultToDelete.type,
+        openCtiTypeHuman: resultToDelete.openCtiTypeHuman
       }
     };
 
     this.sendIntegrationMessage(payload)
-      .then(({ deletedIocId }) => {
+      .then(({ deletedIocId, openCtiTypeHuman }) => {
         if (!deletedIocId) {
           this.flashMessage('Failed to delete item', 'danger');
           return;
@@ -589,7 +590,8 @@ polarity.export = PolarityComponent.extend({
                 canEdit: true,
                 foundInOpenCTI: false,
                 isIndicator: false,
-                isObservable: false
+                isObservable: false,
+                openCtiTypeHuman
               });
           this.set('unifiedResults', iocsWithDeletedMoved);
           this.refreshCanAddToSubmit();
