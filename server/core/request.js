@@ -29,6 +29,16 @@ const {
 } = require('polarity-integration-utils');
 const config = require('../../config/config');
 
+// Workaround required because v1 of the utils library is expecting a request object
+// on the config
+config.request = {
+  cert: '',
+  key: '',
+  passphrase: '',
+  ca: '',
+  proxy: ''
+};
+
 const requestWithDefaults = createRequestWithDefaults({
   config,
   roundedSuccessStatusCodes: [200],
@@ -207,7 +217,7 @@ function enhanceGraphQLError(error, graphqlErrors) {
  */
 async function validateAuthentication(options) {
   const Logger = logging.getLogger();
-  
+
   const testQuery = `
     query tryAuthentication {
       me {
