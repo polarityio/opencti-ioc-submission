@@ -2,6 +2,7 @@
   "name": "opencti-ioc-submission",
   "version": "3.0.0",
   "description": "Polarity integration for Submitting IOCs to OpenCTI",
+  "private": true,
   "scripts": {
     "test": "jest",
     "test:watch": "jest --watch",
