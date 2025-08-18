@@ -734,6 +734,27 @@
                 </div>
               </div>
               <div class="d-flex align-items-start justify-content-end">
+                {{#if 
+                  (and 
+                    (or 
+                      result.isIndicator 
+                      result.isObservable 
+                      (and result.__submitAsObservable result.__submitAsIndicator)
+                    )
+                    (eq block.userOptions.automaticLinking true)
+                  )
+                }}
+                  <div class="mr-1">
+                    {{fa-icon icon="link" class="gray-icon icon-small" fixedWidth=true}}
+                    {{#if result.isIndicator}}
+                      {{bs-tooltip triggerEvents="hover" title="The existing indicator will be linked to the created observable"}}
+                    {{else if result.isObservable}}
+                      {{bs-tooltip triggerEvents="hover" title="The existing observable will be linked to the created indicator"}}
+                    {{else}}
+                      {{bs-tooltip triggerEvents="hover" title="The created indicator and observable will be linked"}}
+                    {{/if}}
+                  </div>
+                {{/if}}
                 <label
                   class="mr-1 d-flex align-items-center justify-content-between submit-checkbox {{
                     if result.isObservable "disabled" ""
@@ -750,9 +771,9 @@
                     disabled=result.isObservable
                   }}
                   {{#if result.isObservable}}
-                    {{bs-tooltip title="Entity is already an Observable"}}
+                    {{bs-tooltip triggerEvents="hover" title="Entity is already an Observable"}}
                   {{else}}
-                    {{bs-tooltip title=(concat "Submit " result.openCtiTypeHuman  " as new Observable")}}
+                    {{bs-tooltip triggerEvents="hover" title=(concat "Submit " result.openCtiTypeHuman  " as new Observable")}}
                   {{/if}}
                 </label>
                 <label
@@ -767,9 +788,9 @@
                     disabled=result.isIndicator
                   }}
                   {{#if result.isIndicator}}
-                    {{bs-tooltip title="Entity is already an Indicator"}}
+                    {{bs-tooltip triggerEvents="hover" title="Entity is already an Indicator"}}
                   {{else}}
-                    {{bs-tooltip title=(concat "Submit " result.openCtiTypeHuman  " as new Indicator")}}
+                    {{bs-tooltip triggerEvents="hover" title=(concat "Submit " result.openCtiTypeHuman  " as new Indicator")}}
                   {{/if}}
                 </label>
                 <button
