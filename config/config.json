@@ -92,7 +92,7 @@
     {
       "key": "automaticLinking",
       "name": "Automatic Relationship Creation",
-      "description": "Control automatic creation of a bidirectional relationship between indicators and observables during submission. This option must be set to \"Lock and show option for all users\".",
+      "description": "If checked, bidirectional relationships between observables and matching indicators will be automatically created when observables/indicators are submitted for creation. This option must be set to \"Lock and show option for all users\". ",
       "default": true,
       "type": "boolean",
       "userCanEdit": false,

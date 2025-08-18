@@ -1,12 +1,15 @@
 # Polarity OpenCTI IOC Submission Integration
 
-The Polarity OpenCTI integration allows Polarity to search your instance of OpenCTI to return found indicators and observables. The integration also allows you to create and delete indicators and observables in bulk from OpenCTI with granular permission control.
+
+
+The Polarity OpenCTI integration allows Polarity to search your instance of OpenCTI to return found indicators and observables. The integration supports creating new indicators and observables in bulk as well as deleting and editing individual observables and indicators.
 
 | ![](assets/search.png)              | ![](assets/details.png)                         | ![](assets/edit.png)          |
 |-------------------------------------|-------------------------------------------------|-------------------------------|
 | *Search Indicators and Observables* | *View Details*                                  | *Edit Observables/Indicators* |
 | ![](assets/delete.png)              | ![](assets/submission.png)                      | |
 | *Delete Indicators and Observables* | *Submit new Indicators and Observables* | |
+
 ## OpenCTI Integration Options
 
 ### OpenCTI API URL
@@ -23,7 +26,7 @@ If checked, the integration will run an exact equality search on the `name`, `va
 Control which types of items users can delete from OpenCTI. Defaults to no deletion permissions for security.  This option must be set to "Lock and show option for all users".
 
 ### Automatic Relationship Creation
-Control automatic creation of a bidirectional relationship between indicators and observables during submission. This option must be set to "Lock and show option for all users".
+If checked, bidirectional relationships between observables and matching indicators will be automatically created when observables/indicators are submitted for creation. This option must be set to "Lock and show option for all users". 
 
 ## Installation Instructions
 
