@@ -16,7 +16,12 @@ const {
  * @param {Object} options - Request options
  * @param {Array} entities - Array of entities that were processed
  */
-const assembleLookupResults = async (unifiedSearchResults, options, entities) => {
+const assembleLookupResults = async (
+  unifiedSearchResults,
+  markings,
+  options,
+  entities
+) => {
   const Logger = getLogger();
 
   try {
@@ -49,6 +54,7 @@ const assembleLookupResults = async (unifiedSearchResults, options, entities) =>
             // OpenCTI-specific configuration
             apiUrl: options.url,
             canCreate: true,
+            markings,
             canAssociate: options.allowAssociation || false
           }
         }

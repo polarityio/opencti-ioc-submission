@@ -5,7 +5,7 @@ polarity.export = PolarityComponent.extend({
   timezone: Ember.computed('Intl', function () {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   }),
-
+  defaultMarkingColor: '#666',
   // Unified data structure for single list interface (Design Meeting requirement)
   unifiedResults: Ember.computed.alias('details.unifiedResults'),
 
@@ -14,7 +14,9 @@ polarity.export = PolarityComponent.extend({
     return Ember.Object.create({
       description: '',
       score: 50,
-      selectedTags: Ember.A([])
+      identity: {},
+      selectedTags: Ember.A([]),
+      selectedMarkings: Ember.A([]),
     });
   }),
 
@@ -23,7 +25,6 @@ polarity.export = PolarityComponent.extend({
     this._super(...arguments);
 
     try {
-      
       this.set('state', { errorMessage: '', errorTitle: '' });
       this.refreshCanAddToSubmit();
     } catch (error) {
@@ -34,6 +35,7 @@ polarity.export = PolarityComponent.extend({
     }
   },
   selectedTags: Ember.computed.alias('submissionState.selectedTags'),
+  selectedMarkings: Ember.computed.alias('submissionState.selectedMarkings'),
   isDeleting: false,
   resultToDelete: {},
   deleteObservable: false,
@@ -52,7 +54,9 @@ polarity.export = PolarityComponent.extend({
   createErrorMessage: '',
   createIsRunning: false,
   selectedTag: [],
+  selectedMarking: [],
   editingTags: false,
+  editingMarkings: false,
   previousTagSearch: '',
   existingTags: Ember.A([]),
   interactionDisabled: Ember.computed(
@@ -286,9 +290,6 @@ polarity.export = PolarityComponent.extend({
       return this.get('unifiedResults').some((result) => result.foundInOpenCTI);
     }
   ),
-  searchTags: function (term, resolve, reject) {
-    this.searchTagsRequest(term, resolve, reject);
-  },
   /**
    * Flash a message on the screen for a specific issue
    * @param message
@@ -404,9 +405,29 @@ polarity.export = PolarityComponent.extend({
         )
       );
     },
+    deleteMarking: function (markingToDelete) {
+      this.set(
+        'selectedMarkings',
+        this.get('selectedMarkings').filter(
+          (selectedMarking) => selectedMarking.id !== markingToDelete.id
+        )
+      );
+    },
     searchTags: function (term) {
       return new Ember.RSVP.Promise((resolve, reject) => {
-        Ember.run.debounce(this, this.searchTags, term, resolve, reject, 600);
+        Ember.run.debounce(this, this.searchTagsRequest, term, resolve, reject, 500);
+      });
+    },
+    searchIdentities: function (term) {
+      return new Ember.RSVP.Promise((resolve, reject) => {
+        Ember.run.debounce(
+          this,
+          this.searchIdentitiesRequest,
+          term,
+          resolve,
+          reject,
+          500
+        );
       });
     },
     addTags: function () {
@@ -427,10 +448,27 @@ polarity.export = PolarityComponent.extend({
       this.set('selectedTag', []);
       this.set('editingTags', false);
     },
+    addMarkings: function () {
+      const selectedMarking = this.get('selectedMarking');
+      const selectedMarkings = this.get('selectedMarkings');
+
+      this.set('createMessage', '');
+
+      let newSelectedMarkings = selectedMarking.filter(
+        (marking) =>
+          !selectedMarkings.some((selectedMarking) => marking.id === selectedMarking.id)
+      );
+
+      this.set('selectedMarkings', selectedMarkings.concat(newSelectedMarkings));
+      this.set('selectedMarking', []);
+      this.set('editingMarkings', false);
+    },
     resetSubmissionOptions: function () {
       this.set('submissionState.score', 50);
       this.set('submissionState.description', '');
+      this.set('submissionState.identity', {});
       this.set('selectedTags', Ember.A([]));
+      this.set('selectedMarkings', Ember.A([]));
     }
   },
   submitItemsRequest: function () {
@@ -442,8 +480,7 @@ polarity.export = PolarityComponent.extend({
     this.set('createMessage', '');
     this.set('createErrorMessage', '');
     this.set('createIsRunning', true);
-
-    const submissionData = this.get('submissionState');
+    
     const resultsArray = this.get('unifiedResults');
 
     const iocsToEditAndCreate = resultsArray.filter(
@@ -462,9 +499,13 @@ polarity.export = PolarityComponent.extend({
       return;
     }
 
+    const submissionData = this.get('submissionState');
     const submissionScore = submissionData.get('score');
     const submissionDescription = submissionData.get('description');
+    const submissionIdentityId = submissionData.get('identity.id');
     const submissionLabelIds = submissionData.get('selectedTags').map((tag) => tag.id);
+    const submissionMarkingIds = submissionData.get('selectedMarkings').map((marking) => marking.id);
+    
 
     if (!submissionScore || submissionScore < 0 || submissionScore > 100) {
       this.flashMessage('Score must be between 0 and 100', 'danger', 3000);
@@ -485,7 +526,9 @@ polarity.export = PolarityComponent.extend({
         iocsToEditAndCreate,
         description: submissionDescription,
         score: submissionScore,
-        labels: submissionLabelIds
+        labels: submissionLabelIds,
+        markings: submissionMarkingIds,
+        authorId: submissionIdentityId
       }
     };
 
@@ -551,7 +594,6 @@ polarity.export = PolarityComponent.extend({
         this.set('createIsRunning', false);
       });
   },
-
   deleteItemRequest: function () {
     this.set('isDeleting', true);
 
@@ -607,7 +649,10 @@ polarity.export = PolarityComponent.extend({
         const userFriendlyError = this.parseOpenCTIError(error);
         this.set('state.errorTitle', 'Deletion Failed');
         this.set('state.errorMessage', userFriendlyError);
-        this.flashMessage(`Failed to delete ${resultToDelete.type}: ${userFriendlyError}`, 'danger');
+        this.flashMessage(
+          `Failed to delete ${resultToDelete.type}: ${userFriendlyError}`,
+          'danger'
+        );
       })
       .finally(() => {
         this.set('isDeleting', false);
@@ -665,7 +710,10 @@ polarity.export = PolarityComponent.extend({
         const userFriendlyError = this.parseOpenCTIError(err);
         this.set('state.errorTitle', 'Edit Failed');
         this.set('state.errorMessage', userFriendlyError);
-        this.flashMessage(`Failed to edit ${resultToEdit.type}: ${userFriendlyError}`, 'danger');
+        this.flashMessage(
+          `Failed to edit ${resultToEdit.type}: ${userFriendlyError}`,
+          'danger'
+        );
       })
       .finally(() => {
         this.set('isEditing', false);
@@ -702,6 +750,50 @@ polarity.export = PolarityComponent.extend({
         this.set('createErrorMessage', `Search Labels Failed: ${userFriendlyError}`);
       })
       .finally(() => {
+        setTimeout(() => {
+          if (!this.isDestroyed) {
+            this.set('createMessage', '');
+            this.set('createErrorMessage', '');
+          }
+        }, 5000);
+        if (typeof resolve === 'function') {
+          resolve();
+        }
+      });
+  },
+  searchIdentitiesRequest: function (term, resolve, reject) {
+    this.set('createMessage', '');
+    this.set('createErrorMessage', '');
+
+    // Prevent running the same search twice in a row.  Can happen if the user opens and closes
+    // the tag search power select (which will run empty string searches repeatedly).
+    if (
+      term === this.get('previousIdentitySearch') &&
+      this.get('existingIdentities.length') > 0
+    ) {
+      return;
+    }
+
+    this.set('isSearchingIdentity', true);
+    this.sendIntegrationMessage({
+      action: 'searchIdentities',
+      data: {
+        term
+      }
+    })
+      .then(({ identities }) => {
+        this.set('existingIdentities', identities);
+        this.set('previousIdentitySearch', term);
+      })
+      .catch((err) => {
+        console.error('Error searching identities', err);
+        const userFriendlyError = this.parseOpenCTIError(err);
+        this.set('state.errorTitle', 'Identity Search Failed');
+        this.set('state.errorMessage', userFriendlyError);
+        this.set('createErrorMessage', `Identity Search Failed: ${userFriendlyError}`);
+      })
+      .finally(() => {
+        this.set('isSearchingIdentity', false);
         setTimeout(() => {
           if (!this.isDestroyed) {
             this.set('createMessage', '');

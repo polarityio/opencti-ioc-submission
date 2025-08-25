@@ -8,8 +8,15 @@ const {
   parseOpenCTIError
 } = require('../errorHandling/opencti-errors');
 const { makeOpenCTIRequest } = require('../core');
-const { SEARCH_TAGS_QUERY } = require('./graphql-queries');
+const { GET_MARKINGS } = require('./graphql-queries');
+const {
+  logging: { getLogger }
+} = require('polarity-integration-utils');
 const { createEnhancedErrorDetail } = require('../errorHandling/error-message-mapping');
+
+let cachedMarkings;
+let refreshMarkingsInterval;
+const MARKINGS_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours in millisecond
 
 /**
  * Search for OpenCTI labels matching the search term
@@ -18,46 +25,33 @@ const { createEnhancedErrorDetail } = require('../errorHandling/error-message-ma
  * @param {Object} [Logger] - Optional Logger instance, defaults to polarity Logger
  * @returns {Promise<Object>} GraphQL data with labels structure
  */
-async function searchTags(searchTerm, options, Logger, callback) {
+async function getMarkings(options) {
+  const Logger = getLogger();
   try {
-    if (Logger) {
-      Logger.trace({ searchTerm }, 'Searching OpenCTI tags/labels');
+    if (cachedMarkings) {
+      Logger.trace('Returning cached markings');
+      return cachedMarkings;
     }
 
-    const variables = {
-      search: searchTerm,
-      first: 50
-    };
+    const result = await makeOpenCTIRequest(GET_MARKINGS, {}, options);
+    cachedMarkings = result.me?.allowed_marking;
 
-    const data = await makeOpenCTIRequest(SEARCH_TAGS_QUERY, variables, options);
-
-    if (Logger) {
-      Logger.debug(
-        {
-          searchTerm,
-          foundLabels: data?.labels?.edges || [],
-          resultCount: data?.labels?.edges?.length || 0,
-          totalCount: data?.labels?.pageInfo?.globalCount || 0
-        },
-        'OpenCTI labels search completed'
-      );
+    if (!cachedMarkings) {
+      Logger.error({ result }, 'Could not retrieve markings');
     }
 
-    if (callback) {
-      callback(null, data);
+    // force the markings to be refreshed every 24 hours
+    if (!refreshMarkingsInterval) {
+      refreshMarkingsInterval = setInterval(() => {
+        cachedMarkings = undefined;
+      }, MARKINGS_CACHE_TTL_MS);
     }
 
-    return data;
+    Logger.debug({ cachedMarkings }, 'Fetched Markings');
+
+    return cachedMarkings;
   } catch (error) {
-    if (Logger) {
-      Logger.error(
-        {
-          searchTerm,
-          error
-        },
-        'OpenCTI labels search failed'
-      );
-    }
+    Logger.error({ error }, 'Marking search failed');
 
     // Handle specific OpenCTI errors
     if (isAuthRequiredError(error)) {
@@ -81,4 +75,6 @@ async function searchTags(searchTerm, options, Logger, callback) {
   }
 }
 
-module.exports = { searchTags, SEARCH_TAGS_QUERY };
+module.exports = {
+  getMarkings
+};

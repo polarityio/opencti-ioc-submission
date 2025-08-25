@@ -5,10 +5,11 @@
 
 // OpenCTI GraphQL Query and Mutation modules
 const { searchIndicatorsAndObservables } = require('./search-indicators-and-observables');
-
+const { searchIdentities } = require('./search-identities');
 const { searchTags } = require('./search-tags');
 
 module.exports = {
   searchIndicatorsAndObservables,
-  searchTags
+  searchTags,
+  searchIdentities
 };

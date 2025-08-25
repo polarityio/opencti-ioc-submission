@@ -7,7 +7,8 @@
  * @returns {string} - Dynamic GraphQL query
  */
 const buildSearchQuery = () => {
-  let query = 'query GetIndicatorsAndObservables($search: String!, $filters: FilterGroup!) {';
+  let query =
+    'query GetIndicatorsAndObservables($search: String!, $filters: FilterGroup!) {';
 
   query += `
     indicators(
@@ -26,6 +27,12 @@ const buildSearchQuery = () => {
           pattern_type
           creators {
            name
+           entity_type
+          }
+          objectMarking {
+            id,
+            definition,
+            x_opencti_color
           }
           confidence
           name
@@ -38,6 +45,7 @@ const buildSearchQuery = () => {
           updated_at
           createdBy {
             name
+            entity_type
           }
           objectLabel {
             value
@@ -67,9 +75,16 @@ const buildSearchQuery = () => {
           updated_at
           createdBy {
             name
+            entity_type
+          }
+          objectMarking {
+            id,
+            definition,
+            x_opencti_color
           }
           creators {
            name
+           entity_type
           }
           objectLabel {
             value
@@ -100,6 +115,22 @@ const buildSearchQuery = () => {
   query += '}';
   return query;
 };
+
+const GET_MARKINGS = `
+query RootPrivateQuery {
+  me {
+    id,
+    allowed_marking {
+      id
+      entity_type
+      standard_id
+      definition_type
+      definition
+      x_opencti_color
+      x_opencti_order
+    }
+  }
+}`;
 
 /**
  * GraphQL query to search for OpenCTI labels
@@ -178,7 +209,10 @@ const buildEditMutationForObservable = (id, description, score, labels) => {
   }
 
   if (labels?.length > 0) {
-    const labelsToAdd = labels?.filter((label) => label.id).map((label) => `"${label.id}"`).join(',');
+    const labelsToAdd = labels
+      ?.filter((label) => label.id)
+      .map((label) => `"${label.id}"`)
+      .join(',');
     query += `
       labels: stixCoreObjectEdit(id: "${id}") {
         added: relationsAdd(input: {toIds: [${labelsToAdd}], relationship_type: "object-label"}) {
@@ -186,7 +220,6 @@ const buildEditMutationForObservable = (id, description, score, labels) => {
         }
       }`;
   }
-
 
   return [
     `mutation EditObservableProperties {
@@ -266,6 +299,7 @@ const CREATE_INDICATOR_MUTATION = `
     $description: String
     $score: Int
     $labels: [String!]
+    $markings: [String!]
     $createdBy: String
   ) {
     indicatorAdd(input: {
@@ -277,6 +311,7 @@ const CREATE_INDICATOR_MUTATION = `
       description: $description
       x_opencti_score: $score
       objectLabel: $labels
+      objectMarking: $markings
       createdBy: $createdBy
     }) {
       id
@@ -284,6 +319,11 @@ const CREATE_INDICATOR_MUTATION = `
       entity_type
       pattern
       pattern_type
+      objectMarking {
+        id,
+        definition,
+        x_opencti_color
+      }
       name
       description
       indicator_types
@@ -295,9 +335,11 @@ const CREATE_INDICATOR_MUTATION = `
       updated_at
       createdBy {
         name
+        entity_type
       }
       creators {
         name
+        entity_type
       }
       objectLabel {
         value
@@ -310,7 +352,7 @@ const CREATE_INDICATOR_MUTATION = `
 /**
  * GraphQL mutation to create a new STIX cyber observable in OpenCTI
  * Based on the pattern from runIocSubmissionQueries.js and iocSubmissionMutations.schema.json
-*/
+ */
 const CREATE_OBSERVABLE_MUTATION = `
   mutation CreateObservable(
     $type: String!
@@ -326,6 +368,7 @@ const CREATE_OBSERVABLE_MUTATION = `
     $score: Int
     $description: String
     $labels: [String!]
+    $markings: [String!]
     $createdBy: String
   ) {
     stixCyberObservableAdd(
@@ -341,6 +384,7 @@ const CREATE_OBSERVABLE_MUTATION = `
       x_opencti_description: $description
       createdBy: $createdBy
       objectLabel: $labels
+      objectMarking: $markings
     ) {
       id
       standard_id
@@ -348,13 +392,20 @@ const CREATE_OBSERVABLE_MUTATION = `
       observable_value
       x_opencti_score
       x_opencti_description
+      objectMarking {
+        id,
+        definition,
+        x_opencti_color
+      }
       created_at
       updated_at
       createdBy {
         name
+        entity_type
       }
       creators {
         name
+        entity_type
       }
       objectLabel {
         value
@@ -407,7 +458,31 @@ const LINK_INDICATOR_AND_OBSERVABLE_BY_ID_MUTATION = `
       fromId
     }
   }
-`
+`;
+
+const SEARCH_IDENTITIES_QUERY = `
+  query IdentitySearchIdentitiesSearchQuery(
+    $types: [String]
+    $search: String
+    $first: Int
+  ) {
+    identities(types: $types, orderBy: _score, orderMode: desc, search: $search, first: $first) {
+      edges {
+        node {
+          __typename
+          id
+          standard_id
+          identity_class
+          name
+          entity_type
+        }
+      },
+      pageInfo {
+        globalCount
+      }
+    }
+  }
+`;
 
 module.exports = {
   buildSearchQuery,
@@ -422,5 +497,7 @@ module.exports = {
   CREATE_OBSERVABLE_MUTATION,
   CREATE_MUTATIONS_BY_TYPE,
   buildCreateLabelsMutation,
-  LINK_INDICATOR_AND_OBSERVABLE_BY_ID_MUTATION
+  LINK_INDICATOR_AND_OBSERVABLE_BY_ID_MUTATION,
+  GET_MARKINGS,
+  SEARCH_IDENTITIES_QUERY
 };

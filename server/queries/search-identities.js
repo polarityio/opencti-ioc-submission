@@ -8,8 +8,9 @@ const {
   parseOpenCTIError
 } = require('../errorHandling/opencti-errors');
 const { makeOpenCTIRequest } = require('../core');
-const { SEARCH_TAGS_QUERY } = require('./graphql-queries');
+const { SEARCH_IDENTITIES_QUERY } = require('./graphql-queries');
 const { createEnhancedErrorDetail } = require('../errorHandling/error-message-mapping');
+const { logging } = require('polarity-integration-utils');
 
 /**
  * Search for OpenCTI labels matching the search term
@@ -18,46 +19,38 @@ const { createEnhancedErrorDetail } = require('../errorHandling/error-message-ma
  * @param {Object} [Logger] - Optional Logger instance, defaults to polarity Logger
  * @returns {Promise<Object>} GraphQL data with labels structure
  */
-async function searchTags(searchTerm, options, Logger, callback) {
+async function searchIdentities(searchTerm, options) {
+  const Logger = logging.getLogger();
   try {
-    if (Logger) {
-      Logger.trace({ searchTerm }, 'Searching OpenCTI tags/labels');
-    }
+    Logger.trace({ searchTerm }, 'Searching OpenCTI identities');
 
     const variables = {
+      types: ['Individual', 'Organization', 'System'],
       search: searchTerm,
       first: 50
     };
 
-    const data = await makeOpenCTIRequest(SEARCH_TAGS_QUERY, variables, options);
+    const data = await makeOpenCTIRequest(SEARCH_IDENTITIES_QUERY, variables, options);
 
-    if (Logger) {
-      Logger.debug(
-        {
-          searchTerm,
-          foundLabels: data?.labels?.edges || [],
-          resultCount: data?.labels?.edges?.length || 0,
-          totalCount: data?.labels?.pageInfo?.globalCount || 0
-        },
-        'OpenCTI labels search completed'
-      );
-    }
-
-    if (callback) {
-      callback(null, data);
-    }
+    Logger.debug(
+      {
+        searchTerm,
+        foundIdentities: data?.identities?.edges || [],
+        resultCount: data?.identities?.edges?.length || 0,
+        totalCount: data?.identities?.pageInfo?.globalCount || 0
+      },
+      'OpenCTI identity search completed'
+    );
 
     return data;
   } catch (error) {
-    if (Logger) {
-      Logger.error(
-        {
-          searchTerm,
-          error
-        },
-        'OpenCTI labels search failed'
-      );
-    }
+    Logger.error(
+      {
+        searchTerm,
+        error
+      },
+      'OpenCTI identity search failed'
+    );
 
     // Handle specific OpenCTI errors
     if (isAuthRequiredError(error)) {
@@ -81,4 +74,4 @@ async function searchTags(searchTerm, options, Logger, callback) {
   }
 }
 
-module.exports = { searchTags, SEARCH_TAGS_QUERY };
+module.exports = { searchIdentities };

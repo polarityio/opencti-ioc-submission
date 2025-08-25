@@ -198,22 +198,26 @@ async function searchIndicatorsAndObservablesForEntity(entity, options) {
   } catch (error) {
     Logger.error(
       {
+        error,
         entity: entity.value,
         entityType: entity.type,
-        error: error.message,
-        stack: error.stack,
         options: {
           url: options.url,
           hasApiKey: !!options.apiKey
         }
       },
-      'OpenCTI search failed'
+      'OpenCTI search indicators and observables failed'
     );
 
-    // Handle OpenCTI-specific errors
+    // Handle specific OpenCTI errors
     if (isAuthRequiredError(error)) {
       const enhancedDetail = createEnhancedErrorDetail(error, 'Authentication required');
       throw new Error(enhancedDetail);
+    }
+
+    // Handle permission errors specifically (before general GraphQL errors)
+    if (error.body?.errors?.some((e) => e.extensions?.code === 'FORBIDDEN')) {
+      throw new Error(`Insufficient Permissions`);
     }
 
     if (isGraphQLError(error)) {

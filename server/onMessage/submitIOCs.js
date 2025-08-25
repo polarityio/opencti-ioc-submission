@@ -25,7 +25,7 @@ const editIOCByType = require('./editIOCByType');
  * @param {Object} [logger] - Optional logger instance, defaults to polarity logger
  * @returns {Promise<Object>} - Created observable data
  */
-async function submitIOCs({ iocsToEditAndCreate, description, score, labels }, options) {
+async function submitIOCs({ iocsToEditAndCreate, description, score, labels, markings, authorId }, options) {
   const Logger = logging.getLogger();
 
   Logger.trace(
@@ -33,7 +33,9 @@ async function submitIOCs({ iocsToEditAndCreate, description, score, labels }, o
       iocsToEditAndCreate,
       description,
       score,
-      labels
+      labels,
+      markings,
+      authorId
     },
     'Submitting IOCs to OpenCTI'
   );
@@ -56,7 +58,9 @@ async function submitIOCs({ iocsToEditAndCreate, description, score, labels }, o
                   iocToCreate: ioc,
                   description,
                   score,
-                  labels
+                  labels,
+                  markings,
+                  authorId
                 },
                 options
               )
@@ -69,7 +73,9 @@ async function submitIOCs({ iocsToEditAndCreate, description, score, labels }, o
                   iocToCreate: ioc,
                   description,
                   score,
-                  labels
+                  labels,
+                  markings,
+                  authorId
                 },
                 options
               )

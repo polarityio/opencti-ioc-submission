@@ -476,7 +476,19 @@
                     </span>
                     <span class="p-value">
                       {{#if result.createdBy}}
-                        {{result.createdBy}}
+                        {{#if result.createdBy.entityType}}
+                          <span>
+                            {{#if (eq result.createdBy.entityType "Organization")}}
+                              {{fa-icon icon="building" fixedWidth=true class="entity-type-icon"}}
+                            {{else if (eq result.createdBy.entityType "Individual")}}
+                              {{fa-icon icon="user" fixedWidth=true class="entity-type-icon"}}
+                            {{else if (eq result.createdBy.entityType "System")}}
+                              {{fa-icon icon="server" fixedWidth=true class="entity-type-icon"}}
+                            {{/if}}
+                            {{bs-tooltip triggerEvents="hover" title=result.createdBy.entityType}}
+                          </span>
+                        {{/if}}
+                        {{result.createdBy.name}}
                       {{else}}
                         --
                       {{/if}}
@@ -501,18 +513,25 @@
                     <span class="p-value">
                       {{moment-format result.createdAt "YYYY-MM-DD" timeZone=timezone}}
                     </span>
-                    <span class="p-key ml-1">
-                      Marking:
-                    </span>
-                    <span class="p-value">
-                      TLP: Clear
-                    </span>
                   </div>
+                  {{#if (gt result.markings.length 0)}}
+                    <div class="p-key">
+                      Markings:
+                    </div>
+                    {{#each result.markings as | marking |}}
+                      <span class="p-tag" style="color: {{if (eq marking.x_opencti_color "#ffffff") defaultMarkingColor marking.x_opencti_color}}; border: 1px solid {{if (eq marking.x_opencti_color "#ffffff") defaultMarkingColor marking.x_opencti_color}}">
+                        {{marking.definition}}
+                      </span>  
+                    {{/each}}
+                  {{/if}}
                   {{#if (gt result.labels.length 0)}}
-                    <div class="mt-1">
+                    <div class="p-key">
+                      Labels:
+                    </div>
+                    <div>
                       {{#each result.labels as |label|}}
                         <span class="p-tag">
-                          {{label}}
+                          {{label.value}}
                         </span>
                       {{/each}}
                     </div>
@@ -855,6 +874,44 @@
         required=false
       }}
     </div>
+  
+    {{!-- Author/Identity --}}
+    <div class="input-container">
+      <label class="small ifta-label">
+        Author
+      </label>
+      {{#power-select
+          eventType="click"
+          rootEventType="click"
+          triggerClass="ifta-field p-power-select-trigger"
+          dropdownClass="p-power-select-dropdown"
+          searchEnabled=true
+          search=(action "searchIdentities")
+          searchMessage="Searching authors ..."
+          loadingMessage="Loading authors ..."
+          selected=submissionState.identity
+          options=existingIdentities
+          searchField="name"
+          placeholder="Select Author"
+          closeOnSelect=true
+          disabled=interactionDisabled
+          onOpen=(action "searchIdentities" "")
+          onChange=(action (mut submissionState.identity))
+      as | identity |
+      }}
+        {{#if (eq identity.entityType "Organization")}}
+          {{fa-icon icon="building" fixedWidth=true}}
+        {{else if (eq identity.entityType "Individual")}}
+          {{fa-icon icon="user" fixedWidth=true}}
+        {{else if (eq identity.entityType "System")}}
+          {{fa-icon icon="server" fixedWidth=true}}          
+        {{/if}}
+        {{identity.name}}
+      {{/power-select}}
+      {{#if isSearchingIdentity}}
+        {{fa-icon icon="spinner-third" fixedWidth=true spin=true class="searching-identity-icon"}}
+      {{/if}}
+    </div>
 
     {{! Description Input }}
     <div
@@ -873,6 +930,104 @@
         disabled=interactionDisabled
         required=false
       }}
+    </div>
+
+    {{! Markings }}
+    <div>
+      <div class="d-flex align-items-center justify-content-start">
+        <h1 class="p-title align-self-baseline">
+          Markings
+        </h1>
+        {{#unless (or editingTags interactionDisabled)}}
+          <button
+                  class="btn icon-btn p-action align-self-baseline"
+                  title="Edit Markings"
+            {{action (toggle "editingMarkings" this)}}
+          >
+            {{fa-icon icon="plus-circle" fixedWidth=true}} Edit Markings
+          </button>
+        {{/unless}}
+      </div>
+      {{#if (eq selectedMarkings.length 0)}}
+        <div class="p-footnote">
+          No Markings Selected
+        </div>
+      {{else}}
+        {{#each selectedMarkings as |marking markingIndex|}}
+          <span class="tag link-tag d-inline-flex align-items-center">
+            <span
+              class="p-tag"
+              style="border: 1px solid {{if (eq marking.x_opencti_color "#ffffff") defaultMarkingColor marking.x_opencti_color}};
+              color: {{if (eq marking.x_opencti_color "#ffffff") defaultMarkingColor marking.x_opencti_color}}"
+            >
+              {{marking.definition}}
+              {{#if (not interactionDisabled)}}
+                <span class="remove-icon-container" {{action "deleteMarking" marking}}>
+                  {{fa-icon "times" class="tag-close-icon" fixedWidth=true}}
+                </span>
+              {{/if}}
+            </span>
+          </span>
+        {{/each}}
+      {{/if}}
+
+      {{#if editingMarkings}}
+        <div class="add-container mt-2">
+          <div class="input-container mb-2">
+            <label class="small ifta-label">
+              Select Markings to Add
+            </label>
+            {{#power-select-multiple
+                eventType="click"
+                rootEventType="click"
+                triggerClass="p-power-select-multiple-trigger"
+                dropdownClass="p-power-select-dropdown"
+                selected=selectedMarking
+                options=details.markings
+                searchEnabled=true
+                placeholder="Search Markings"
+                searchField="definition"
+                searchPlaceholder="Search Markings"
+                closeOnSelect=true
+                disabled=interactionDisabled
+                onChange=(action (mut selectedMarking)) as |marking|
+            }}
+              <span
+                class="p-tag"
+                style="display: inline-block;
+                        font-weight: normal;
+                        word-break: break-word;
+                        line-height: 1.2em;
+                        font-size: 12px;
+                        background-color: #fff;
+                        border: 1px solid {{if (eq marking.x_opencti_color "#ffffff") defaultMarkingColor marking.x_opencti_color}};
+                        padding: 2px 10px;
+                        border-radius: 16px;
+                        margin: 0px;
+                        color: {{if (eq marking.x_opencti_color "#ffffff") defaultMarkingColor marking.x_opencti_color}};"
+              >
+                {{marking.definition}}
+              </span>
+            {{/power-select-multiple}}
+          </div>
+          <div class="d-flex align-items-center justify-content-end mb-1 mt-2">
+            <button
+              class="btn btn-naked p-btn short outline"
+              disabled={{interactionDisabled}}
+              {{action (toggle "editingMarkings" this)}}
+            >
+              Cancel
+            </button>
+            <button
+                    class="btn btn-polarity p-btn short outline"
+                    disabled={{interactionDisabled}}
+              {{action "addMarkings"}}
+            >
+              Add Markings
+            </button>
+          </div>
+        </div>
+      {{/if}}
     </div>
 
     {{! Associated Labels }}
