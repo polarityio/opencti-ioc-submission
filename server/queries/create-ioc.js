@@ -18,6 +18,7 @@ const {
 const { makeOpenCTIRequest } = require('../core');
 const { CREATE_MUTATIONS_BY_TYPE } = require('./graphql-queries');
 const { createUnifiedItemList } = require('../core/dataTransformations');
+const { createEnhancedErrorDetail } = require('../errorHandling/error-message-mapping');
 
 /**
  * Create a new indicator in OpenCTI
@@ -27,11 +28,11 @@ const { createUnifiedItemList } = require('../core/dataTransformations');
  * @returns {Promise<Object>} - Created indicator data
  */
 async function createIOC(
-  { typeToCreate, iocToCreate, description, score, labels },
+  { typeToCreate, iocToCreate, description, score, labels, markings, authorId },
   options
 ) {
   const Logger = logging.getLogger();
-  
+
   try {
     const variables = createVariablesByType(
       typeToCreate,
@@ -39,6 +40,8 @@ async function createIOC(
       description,
       score,
       labels,
+      markings,
+      authorId,
       options
     );
 
@@ -98,19 +101,25 @@ async function createIOC(
         labels,
         error
       },
-      'OpenCTI ioc creation failed'
+      'OpenCTI IOC creation failed'
     );
 
-    // Handle OpenCTI-specific errors
+    // Handle specific OpenCTI errors
     if (isAuthRequiredError(error)) {
-      throw new Error(
-        'Authentication failed: Invalid API key or insufficient permissions'
-      );
+      const enhancedDetail = createEnhancedErrorDetail(error, 'Authentication required');
+      throw new Error(enhancedDetail);
+    }
+
+    // Handle permission errors specifically (before general GraphQL errors)
+    if (error.body?.errors?.some((e) => e.extensions?.code === 'FORBIDDEN')) {
+      throw new Error(`Insufficient Permissions`);
     }
 
     if (isGraphQLError(error)) {
       const parsedError = parseOpenCTIError(error);
-      throw new Error(`OpenCTI GraphQL error: ${parsedError.message}`);
+      const graphqlMessage = error.message || parsedError.message || 'GraphQL error';
+      const enhancedDetail = createEnhancedErrorDetail(error, graphqlMessage);
+      throw new Error(enhancedDetail);
     }
 
     throw error;
@@ -123,6 +132,8 @@ const createVariablesByType = (
   description,
   score,
   labels,
+  markings,
+  authorId,
   options
 ) =>
   ['indicator', 'observable'].includes(typeToCreate)
@@ -158,7 +169,8 @@ const createVariablesByType = (
         score: parseInt(score),
         labels,
         StixFile: null,
-        createdBy: null
+        createdBy: authorId,
+        markings
       }
     : false;
 

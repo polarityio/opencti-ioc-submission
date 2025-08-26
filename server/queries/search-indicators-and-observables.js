@@ -10,7 +10,7 @@ const {
   parseOpenCTIError
 } = require('../errorHandling/opencti-errors');
 const { makeOpenCTIRequest } = require('../core');
-const { buildSearchQuery } = require('./graphql-queries');
+const { SEARCH_INDICATORS_AND_OBSERVABLES } = require('./graphql-queries');
 const { createEnhancedErrorDetail } = require('../errorHandling/error-message-mapping');
 const {
   createUnifiedItemList,
@@ -95,12 +95,9 @@ async function searchIndicatorsAndObservablesForEntity(entity, options) {
 
   try {
     // Build dynamic query based on enabled search types
-    const query = buildSearchQuery();
-
     Logger.trace(
       {
         entity: entity.value,
-        query,
         options: {
           url: options.url,
           hasApiKey: !!options.apiKey,
@@ -180,7 +177,7 @@ async function searchIndicatorsAndObservablesForEntity(entity, options) {
       }
     }
 
-    const response = await makeOpenCTIRequest(query, variables, options);
+    const response = await makeOpenCTIRequest(SEARCH_INDICATORS_AND_OBSERVABLES, variables, options);
 
     Logger.trace(
       {
@@ -198,22 +195,26 @@ async function searchIndicatorsAndObservablesForEntity(entity, options) {
   } catch (error) {
     Logger.error(
       {
+        error,
         entity: entity.value,
         entityType: entity.type,
-        error: error.message,
-        stack: error.stack,
         options: {
           url: options.url,
           hasApiKey: !!options.apiKey
         }
       },
-      'OpenCTI search failed'
+      'OpenCTI search indicators and observables failed'
     );
 
-    // Handle OpenCTI-specific errors
+    // Handle specific OpenCTI errors
     if (isAuthRequiredError(error)) {
       const enhancedDetail = createEnhancedErrorDetail(error, 'Authentication required');
       throw new Error(enhancedDetail);
+    }
+
+    // Handle permission errors specifically (before general GraphQL errors)
+    if (error.body?.errors?.some((e) => e.extensions?.code === 'FORBIDDEN')) {
+      throw new Error(`Insufficient Permissions`);
     }
 
     if (isGraphQLError(error)) {
@@ -229,7 +230,6 @@ async function searchIndicatorsAndObservablesForEntity(entity, options) {
 
 /**
  * Create unified data structure with computed properties for single-list interface
- * Implements CTO design meeting specifications for icon-based differentiation
  * @param {Object} entity - Entity being processed
  * @param {Array} indicators - OpenCTI indicators from GraphQL
  * @param {Array} observables - OpenCTI observables from GraphQL

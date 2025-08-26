@@ -16,7 +16,7 @@ const {
 } = require('./server');
 const { splitOutIgnoredIps } = require('./server/core/dataTransformations');
 const { searchIndicatorsAndObservables } = require('./server/queries');
-
+const { getMarkings } = require('./server/queries/get-markings');
 /**
  * Main lookup function following blink-ops patterns
  * @param {Array} entities - Array of entities to process
@@ -56,8 +56,11 @@ const doLookup = async (entities, { url, ..._options }, callback) => {
       options
     );
 
+    const markings = await getMarkings(options);
+
     const lookupResults = await assembleLookupResults(
       unifiedSearchResults,
+      markings,
       options,
       entitiesPartition
     );
@@ -83,7 +86,7 @@ const onMessage = async ({ action, data: actionParams }, options, callback) => {
 
   try {
     const result = await onMessageFunctions[action](actionParams, options);
-    Logger.trace({result}, `onMessage ${action} result`);
+    Logger.trace({ result }, `onMessage ${action} result`);
     callback(null, result);
   } catch (error) {
     Logger.error({ error }, `Error executing onMessage function ${action}`);

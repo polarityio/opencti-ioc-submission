@@ -3,6 +3,12 @@ const { LINK_INDICATOR_AND_OBSERVABLE_BY_ID_MUTATION } = require('./graphql-quer
 const {
   logging: { getLogger }
 } = require('polarity-integration-utils');
+const {
+  isAuthRequiredError,
+  isGraphQLError,
+  parseOpenCTIError
+} = require('../errorHandling/opencti-errors');
+const { createEnhancedErrorDetail } = require('../errorHandling/error-message-mapping');
 
 /**
  * Link an indicator and observable by their IDs
@@ -36,7 +42,34 @@ async function linkIndicatorAndObservableById(indicatorId, observableId, options
       'Linking indicator and observable by id completed'
     );
   } catch (error) {
-    Logger.error({ error }, 'Error in linkIndicatorAndObservableById');
+    Logger.error(
+      {
+        indicatorId,
+        observableId,
+        error
+      },
+      'OpenCTI link indicator and observable failed'
+    );
+
+    // Handle specific OpenCTI errors
+    if (isAuthRequiredError(error)) {
+      const enhancedDetail = createEnhancedErrorDetail(error, 'Authentication required');
+      throw new Error(enhancedDetail);
+    }
+
+    // Handle permission errors specifically (before general GraphQL errors)
+    if (error.body?.errors?.some((e) => e.extensions?.code === 'FORBIDDEN')) {
+      throw new Error(`Insufficient Permissions`);
+    }
+
+    if (isGraphQLError(error)) {
+      const parsedError = parseOpenCTIError(error);
+      const graphqlMessage = error.message || parsedError.message || 'GraphQL error';
+      const enhancedDetail = createEnhancedErrorDetail(error, graphqlMessage);
+      throw new Error(enhancedDetail);
+    }
+
+    throw error;
   }
 }
 

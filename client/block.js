@@ -5,7 +5,7 @@ polarity.export = PolarityComponent.extend({
   timezone: Ember.computed('Intl', function () {
     return Intl.DateTimeFormat().resolvedOptions().timeZone;
   }),
-
+  defaultMarkingColor: '#666',
   // Unified data structure for single list interface (Design Meeting requirement)
   unifiedResults: Ember.computed.alias('details.unifiedResults'),
 
@@ -14,7 +14,9 @@ polarity.export = PolarityComponent.extend({
     return Ember.Object.create({
       description: '',
       score: 50,
-      selectedTags: Ember.A([])
+      identity: {},
+      selectedTags: Ember.A([]),
+      selectedMarkings: Ember.A([])
     });
   }),
 
@@ -23,7 +25,6 @@ polarity.export = PolarityComponent.extend({
     this._super(...arguments);
 
     try {
-      
       this.set('state', { errorMessage: '', errorTitle: '' });
       this.refreshCanAddToSubmit();
     } catch (error) {
@@ -34,6 +35,7 @@ polarity.export = PolarityComponent.extend({
     }
   },
   selectedTags: Ember.computed.alias('submissionState.selectedTags'),
+  selectedMarkings: Ember.computed.alias('submissionState.selectedMarkings'),
   isDeleting: false,
   resultToDelete: {},
   deleteObservable: false,
@@ -45,14 +47,18 @@ polarity.export = PolarityComponent.extend({
     const result = this.get('resultToEdit');
     return Ember.Object.create({
       score: result.score || 50,
-      description: result.description || ''
+      description: result.description || '',
+      identity: result.createdBy || {},
+      selectedMarkings: result.markings || Ember.A([])
     });
   }),
   createMessage: '',
   createErrorMessage: '',
   createIsRunning: false,
   selectedTag: [],
+  selectedMarking: [],
   editingTags: false,
+  editingMarkings: false,
   previousTagSearch: '',
   existingTags: Ember.A([]),
   interactionDisabled: Ember.computed(
@@ -286,9 +292,6 @@ polarity.export = PolarityComponent.extend({
       return this.get('unifiedResults').some((result) => result.foundInOpenCTI);
     }
   ),
-  searchTags: function (term, resolve, reject) {
-    this.searchTagsRequest(term, resolve, reject);
-  },
   /**
    * Flash a message on the screen for a specific issue
    * @param message
@@ -404,9 +407,37 @@ polarity.export = PolarityComponent.extend({
         )
       );
     },
+    deleteMarking: function (markingToDelete) {
+      this.set(
+        'selectedMarkings',
+        this.get('selectedMarkings').filter(
+          (selectedMarking) => selectedMarking.id !== markingToDelete.id
+        )
+      );
+    },
+    deleteMarkingEdit: function (markingToDelete) {
+      this.set(
+          'editFormData.selectedMarkings',
+          this.get('editFormData.selectedMarkings').filter(
+              (selectedMarking) => selectedMarking.id !== markingToDelete.id
+          )
+      );
+    },
     searchTags: function (term) {
       return new Ember.RSVP.Promise((resolve, reject) => {
-        Ember.run.debounce(this, this.searchTags, term, resolve, reject, 600);
+        Ember.run.debounce(this, this.searchTagsRequest, term, resolve, reject, 500);
+      });
+    },
+    searchIdentities: function (term) {
+      return new Ember.RSVP.Promise((resolve, reject) => {
+        Ember.run.debounce(
+          this,
+          this.searchIdentitiesRequest,
+          term,
+          resolve,
+          reject,
+          500
+        );
       });
     },
     addTags: function () {
@@ -427,10 +458,45 @@ polarity.export = PolarityComponent.extend({
       this.set('selectedTag', []);
       this.set('editingTags', false);
     },
+    addMarkings: function () {
+      const selectedMarking = this.get('selectedMarking');
+      const selectedMarkings = this.get('selectedMarkings');
+
+      this.set('createMessage', '');
+
+      let newSelectedMarkings = selectedMarking.filter(
+        (marking) =>
+          !selectedMarkings.some((selectedMarking) => marking.id === selectedMarking.id)
+      );
+
+      this.set('selectedMarkings', selectedMarkings.concat(newSelectedMarkings));
+      this.set('selectedMarking', []);
+      this.set('editingMarkings', false);
+    },
+    addMarkingsEdit: function () {
+      const selectedMarking = this.get('editFormData.selectedMarking');
+      const selectedMarkings = this.get('editFormData.selectedMarkings');
+
+      this.set('createMessage', '');
+
+      let newSelectedMarkings = selectedMarking.filter(
+        (marking) =>
+          !selectedMarkings.some((selectedMarking) => marking.id === selectedMarking.id)
+      );
+
+      this.set(
+        'editFormData.selectedMarkings',
+        selectedMarkings.concat(newSelectedMarkings)
+      );
+      this.set('editFormData.selectedMarking', []);
+      this.set('editingMarkingsEdit', false);
+    },
     resetSubmissionOptions: function () {
       this.set('submissionState.score', 50);
       this.set('submissionState.description', '');
+      this.set('submissionState.identity', {});
       this.set('selectedTags', Ember.A([]));
+      this.set('selectedMarkings', Ember.A([]));
     }
   },
   submitItemsRequest: function () {
@@ -443,7 +509,6 @@ polarity.export = PolarityComponent.extend({
     this.set('createErrorMessage', '');
     this.set('createIsRunning', true);
 
-    const submissionData = this.get('submissionState');
     const resultsArray = this.get('unifiedResults');
 
     const iocsToEditAndCreate = resultsArray.filter(
@@ -462,9 +527,14 @@ polarity.export = PolarityComponent.extend({
       return;
     }
 
+    const submissionData = this.get('submissionState');
     const submissionScore = submissionData.get('score');
     const submissionDescription = submissionData.get('description');
+    const submissionIdentityId = submissionData.get('identity.id');
     const submissionLabelIds = submissionData.get('selectedTags').map((tag) => tag.id);
+    const submissionMarkingIds = submissionData
+      .get('selectedMarkings')
+      .map((marking) => marking.id);
 
     if (!submissionScore || submissionScore < 0 || submissionScore > 100) {
       this.flashMessage('Score must be between 0 and 100', 'danger', 3000);
@@ -485,7 +555,9 @@ polarity.export = PolarityComponent.extend({
         iocsToEditAndCreate,
         description: submissionDescription,
         score: submissionScore,
-        labels: submissionLabelIds
+        labels: submissionLabelIds,
+        markings: submissionMarkingIds,
+        authorId: submissionIdentityId
       }
     };
 
@@ -551,7 +623,6 @@ polarity.export = PolarityComponent.extend({
         this.set('createIsRunning', false);
       });
   },
-
   deleteItemRequest: function () {
     this.set('isDeleting', true);
 
@@ -607,7 +678,10 @@ polarity.export = PolarityComponent.extend({
         const userFriendlyError = this.parseOpenCTIError(error);
         this.set('state.errorTitle', 'Deletion Failed');
         this.set('state.errorMessage', userFriendlyError);
-        this.flashMessage(`Failed to delete ${resultToDelete.type}: ${userFriendlyError}`, 'danger');
+        this.flashMessage(
+          `Failed to delete ${resultToDelete.type}: ${userFriendlyError}`,
+          'danger'
+        );
       })
       .finally(() => {
         this.set('isDeleting', false);
@@ -624,13 +698,24 @@ polarity.export = PolarityComponent.extend({
     const scoreHasChanged = editFormData.get('score') !== resultToEdit.score;
     const descriptionHasChanged =
       editFormData.get('description') !== resultToEdit.description;
+    const identityHasChanged = editFormData.get('identity.id') !== resultToEdit.createdBy.id;
+    const markingsHaveChanged = !this.areIdArraysEqual(
+      resultToEdit.markings,
+      editFormData.get('selectedMarkings')
+    );
 
-    const nothingChanged = !(scoreHasChanged || descriptionHasChanged);
+    const nothingChanged = !(
+      scoreHasChanged ||
+      descriptionHasChanged ||
+      identityHasChanged ||
+      markingsHaveChanged
+    );
     if (nothingChanged) {
       this.flashMessage(
         'Nothing was changed from the previous values during Edit',
         'info'
       );
+      this.set('isEditing', false);
       return;
     }
 
@@ -640,22 +725,27 @@ polarity.export = PolarityComponent.extend({
         idToEdit: resultToEdit.id,
         type: resultToEdit.type,
         score: scoreHasChanged ? editFormData.get('score') : null,
-        description: descriptionHasChanged ? editFormData.get('description') : null
+        description: descriptionHasChanged ? editFormData.get('description') : null,
+        authorId: identityHasChanged ? editFormData.get('identity.id') : null,
+        markings: markingsHaveChanged ? editFormData.get('selectedMarkings').map(marking => marking.id) : null,
+        entity: this.get('block.entity')
       }
     };
 
     this.sendIntegrationMessage(payload)
-      .then(({ editedIocId }) => {
+      .then((editedIoc) => {
         const indexToUpdate = this.get('unifiedResults').findIndex(
-          (existingResult) => existingResult.id === resultToEdit.id
+          (existingResult) => existingResult.id === editedIoc.id
         );
 
         if (indexToUpdate >= 0) {
-          this.set(`unifiedResults.${indexToUpdate}.score`, editFormData.get('score'));
-          this.set(
-            `unifiedResults.${indexToUpdate}.description`,
-            editFormData.get('description')
-          );
+          // This details should be open so need to reset this property on
+          // the updated ioc
+          editedIoc.__viewIndicatorDetails = true;
+          this.set(`unifiedResults.${indexToUpdate}`, editedIoc);
+
+          // Need to trigger a property refresh so change the array reference
+          this.set('unifiedResults', [...this.get('unifiedResults')]);
         }
 
         this.flashMessage('Successfully updated item', 'success');
@@ -665,7 +755,10 @@ polarity.export = PolarityComponent.extend({
         const userFriendlyError = this.parseOpenCTIError(err);
         this.set('state.errorTitle', 'Edit Failed');
         this.set('state.errorMessage', userFriendlyError);
-        this.flashMessage(`Failed to edit ${resultToEdit.type}: ${userFriendlyError}`, 'danger');
+        this.flashMessage(
+          `Failed to edit ${resultToEdit.type}: ${userFriendlyError}`,
+          'danger'
+        );
       })
       .finally(() => {
         this.set('isEditing', false);
@@ -712,5 +805,56 @@ polarity.export = PolarityComponent.extend({
           resolve();
         }
       });
+  },
+  searchIdentitiesRequest: function (term, resolve, reject) {
+    this.set('createMessage', '');
+    this.set('createErrorMessage', '');
+
+    // Prevent running the same search twice in a row.  Can happen if the user opens and closes
+    // the tag search power select (which will run empty string searches repeatedly).
+    if (
+      term === this.get('previousIdentitySearch') &&
+      this.get('existingIdentities.length') > 0
+    ) {
+      return;
+    }
+
+    this.set('isSearchingIdentity', true);
+    this.sendIntegrationMessage({
+      action: 'searchIdentities',
+      data: {
+        term
+      }
+    })
+      .then(({ identities }) => {
+        this.set('existingIdentities', identities);
+        this.set('previousIdentitySearch', term);
+      })
+      .catch((err) => {
+        console.error('Error searching identities', err);
+        const userFriendlyError = this.parseOpenCTIError(err);
+        this.set('state.errorTitle', 'Identity Search Failed');
+        this.set('state.errorMessage', userFriendlyError);
+        this.set('createErrorMessage', `Identity Search Failed: ${userFriendlyError}`);
+      })
+      .finally(() => {
+        this.set('isSearchingIdentity', false);
+        setTimeout(() => {
+          if (!this.isDestroyed) {
+            this.set('createMessage', '');
+            this.set('createErrorMessage', '');
+          }
+        }, 5000);
+        if (typeof resolve === 'function') {
+          resolve();
+        }
+      });
+  },
+  areIdArraysEqual: function (arr1, arr2) {
+    if (!Array.isArray(arr1) || !Array.isArray(arr2)) return false;
+    if (arr1.length !== arr2.length) return false;
+    const ids1 = arr1.map((obj) => obj.id).sort();
+    const ids2 = arr2.map((obj) => obj.id).sort();
+    return ids1.every((id, idx) => id === ids2[idx]);
   }
 });

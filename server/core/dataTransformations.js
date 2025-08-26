@@ -61,14 +61,15 @@ const createUnifiedItemList = (indicators, observables, entity, options = {}) =>
     webLink: `${options.url}/dashboard/observations/indicators/${indicator.id}`,
     confidence: indicator.confidence || 50,
     score: indicator.x_opencti_score || 50,
-    labels: (indicator.objectLabel || []).map((label) => label.value),
+    labels: indicator.objectLabel || [],
     createdAt: indicator.created_at,
     updatedAt: indicator.updated_at,
     // createdBy is displayed as "Author" in UI
-    createdBy: indicator.createdBy?.name || '--',
+    createdBy: indicator.createdBy ? {name: indicator.createdBy.name, entityType: indicator.createdBy.entity_type} : { name: '--' },
     creators: Array.isArray(indicator.creators)
       ? indicator.creators.map((creator) => creator.name)
       : '--',
+    markings: indicator.objectMarking,
     foundInOpenCTI: true,
     isIndicator: true,
     isObservable: false,
@@ -94,14 +95,15 @@ const createUnifiedItemList = (indicators, observables, entity, options = {}) =>
     description: observable.x_opencti_description || '',
     webLink: `${options.url}/dashboard/observations/observables/${observable.id}`,
     score: observable.x_opencti_score || 50,
-    labels: (observable.objectLabel || []).map((label) => label.value),
+    labels: observable.objectLabel || [],
     createdAt: observable.created_at,
     updatedAt: observable.updated_at,
     // createdBy is displayed as "Author" in UI
-    createdBy: observable.createdBy?.name || '--',
+    createdBy: observable.createdBy ? {name: observable.createdBy.name, entityType: observable.createdBy.entity_type} : { name: '--' },
     creators: Array.isArray(observable.creators)
       ? observable.creators.map((creator) => creator.name)
       : '--',
+    markings: observable.objectMarking,
     foundInOpenCTI: true,
     hashes: observable.hashes || [],
     type: 'observable',
