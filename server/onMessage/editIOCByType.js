@@ -11,19 +11,20 @@ const {
 } = require('../errorHandling/opencti-errors');
 const { makeOpenCTIRequest } = require('../core');
 const {
-  buildEditMutationForType,
-  buildCreateLabelsMutation
+  getIndicatorOrObservableById
+} = require('../queries/get-indicator-observable-by-id');
+const {
+  EDIT_OBSERVABLE,
+  EDIT_INDICATOR_MARKINGS,
+  EDIT_INDICATOR_DESCRIPTION,
+  EDIT_INDICATOR_SCORE,
+  EDIT_INDICATOR_AUTHOR
 } = require('../queries/graphql-queries');
 
-/**
- * Delete an IOC from OpenCTI
- * @param {string} idToEdit - ID of the observable to delete
- * @param {string} type - Type of the IOC to delete
- * @param {Object} options - Configuration options containing OpenCTI API details
- * @param {Object} [logger] - Optional logger instance, defaults to polarity logger
- * @returns {Promise<string>} - Deleted observable ID
- */
-async function editIOCByType({ idToEdit, type, score, description, labels }, options) {
+async function editIOCByType(
+  { idToEdit, type, score, description, labels, authorId, markings, entity },
+  options
+) {
   const Logger = logging.getLogger();
 
   Logger.trace(
@@ -32,42 +33,84 @@ async function editIOCByType({ idToEdit, type, score, description, labels }, opt
       type,
       score,
       description,
-      labels
+      labels,
+      authorId,
+      markings
     },
     'Editing OpenCTI observable'
   );
 
   try {
-    const [descriptionAndLabelsMutation, scoreMutation] = buildEditMutationForType(
-      type,
-      idToEdit,
-      description,
-      score,
-      labels
-    );
-    const [descriptionAndLabelsData, scoreData] = await Promise.all([
-      descriptionAndLabelsMutation
-        ? makeOpenCTIRequest(descriptionAndLabelsMutation, {}, options)
-        : null,
-      scoreMutation ? makeOpenCTIRequest(scoreMutation, {}, options) : null
-    ]);
+    if (type === 'observable') {
+      // the patch variables control whether a specific field will be updated by the
+      // graphql.  Because the fields are defined as non-null in the graphql schema,
+      // we set the values to empty strings if the value is `null` which prevents
+      // them from being updated.
+      // (null here indicates the value should not be updated)
+      const variables = {
+        patchAuthor: authorId !== null ? true : false,
+        patchMarkings: markings !== null ? true : false,
+        patchScore: score !== null ? true : false,
+        patchDescription: description !== null ? true : false,
+        id: idToEdit,
+        authorId: authorId === null ? '' : authorId,
+        markings: markings === null ? '' : markings,
+        description: description === null ? '' : description,
+        score: score === null ? '' : score
+      };
+      Logger.trace({ variables }, 'Edit Observable Variables');
 
-    const editedIocId = getEditedIocId(descriptionAndLabelsData, scoreData, type);
+      await makeOpenCTIRequest(EDIT_OBSERVABLE, variables, options);
+      const updatedObservable = await getIndicatorOrObservableById(
+        'observable',
+        idToEdit,
+        entity,
+        options
+      );
 
-    Logger.trace(
-      {
-        editedIocId,
-        descriptionAndLabelsMutation,
-        scoreMutation,
-        descriptionAndLabelsData,
-        scoreData
-      },
-      'OpenCTI observable edited successfully'
-    );
+      Logger.trace({ updatedObservable }, 'Edit Observable result');
+      return updatedObservable;
+    } else if (type === 'indicator') {
+      const updateTasks = [];
+      
+      if (authorId !== null) {
+        updateTasks.push(
+          makeOpenCTIRequest(EDIT_INDICATOR_AUTHOR, { id: idToEdit, authorId }, options)
+        );
+      }
+      if (markings !== null) {
+        updateTasks.push(
+          makeOpenCTIRequest(EDIT_INDICATOR_MARKINGS, { id: idToEdit, markings }, options)
+        );
+      }
+      if (description !== null) {
+        updateTasks.push(
+          makeOpenCTIRequest(
+            EDIT_INDICATOR_DESCRIPTION,
+            { id: idToEdit, description },
+            options
+          )
+        );
+      }
+      if (score !== null) {
+        updateTasks.push(
+          makeOpenCTIRequest(EDIT_INDICATOR_SCORE, { id: idToEdit, score }, options)
+        );
+      }
 
-    // TODO: This is being returned as null and is not used by the front end
-    // Figure out if this is needed or not
-    return { editedIocId };
+      await Promise.all(updateTasks);
+      const updatedIndicator = await getIndicatorOrObservableById(
+        'indicator',
+        idToEdit,
+        entity,
+        options
+      );
+
+      Logger.trace({ updatedIndicator }, 'Edit Indicator result');
+      return updatedIndicator;
+    } else {
+      throw new Error(`Unexpected type ${type} when editing IOC`);
+    }
   } catch (error) {
     Logger.error(
       {
@@ -102,35 +145,5 @@ async function editIOCByType({ idToEdit, type, score, description, labels }, opt
     throw error;
   }
 }
-
-/**
- * Get the ID of the edited IOC
- * @param {Object} data - The data from the OpenCTI API
- * @param {string} type - The type of the IOC
- * @returns {string} - The ID of the edited IOC
- */
-const getEditedIocId = (descriptionAndLabelsData, scoreData, type) => {
-  const indicatorScoreId = scoreData?.score?.id;
-  const observableScoreId = scoreData?.stixCyberObservableEdit?.score?.id;
-
-  const indicatorDescriptionId = descriptionAndLabelsData?.description?.id;
-  const observableDescriptionId =
-    descriptionAndLabelsData?.stixCyberObservableEdit?.description?.id;
-
-  const indicatorLabelsId = descriptionAndLabelsData?.labels?.added?.id;
-  const observableLabelsId = descriptionAndLabelsData?.labels?.added?.id;
-
-  return (
-    indicatorScoreId ||
-    indicatorDescriptionId ||
-    observableScoreId ||
-    observableDescriptionId ||
-    indicatorLabelsId ||
-    observableLabelsId ||
-    indicatorLabelsId ||
-    observableLabelsId ||
-    null
-  );
-};
 
 module.exports = editIOCByType;
